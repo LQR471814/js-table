@@ -1,0 +1,1 @@
+type RowData = Array<any>;
