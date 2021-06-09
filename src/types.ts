@@ -74,6 +74,10 @@ interface FRONTEND_REQUEST_ROWS_MSG {
     start: number
     end: number
 }
+interface BACKEND_REQUEST_ROWS_MSG {
+    type: string
+    rows: RowData[]
+}
 
 export const EVENT_SORT = "sort"
 interface FRONTEND_SORT_MSG {

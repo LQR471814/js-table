@@ -1,7 +1,7 @@
-<svelte:options tag="js-table-demo"></svelte:options>
+<svelte:options tag="js-table-demo" />
 
 <script lang="ts">
-	import Table from './Table/Table.svelte'
+	import './Table/Table.svelte'
 
 	function generateTableHeaders(columns: number) {
 		const headers = []
@@ -18,7 +18,7 @@
 		for (let y = 0; y < rows; y++) {
 			const row = []
 			for (let x = 0; x < columns; x++) {
-				row.push(Math.round(Math.random() * 100))
+				row.push(Math.round(Math.random() * 100).toString())
 			}
 			data.push(row)
 		}
@@ -26,10 +26,12 @@
 		return data
 	}
 
-	const headers = generateTableHeaders(20)
-	const data = generateTableData(100, 20)
+
 </script>
 
 <main>
-	<Table {headers} {data} />
+	<js-table
+		headers="{generateTableHeaders(20)}"
+		data="{generateTableData(100, 20)}"
+	/>
 </main>

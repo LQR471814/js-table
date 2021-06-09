@@ -3,11 +3,12 @@ import {
     EVENT_REQUEST_ROWS,
     EVENT_SORT,
     EVENT_SEARCH,
+    TableData,
 } from '../types'
 
-import { sort } from 'fast-sort'
+import { createNewSortInstance } from 'fast-sort'
 
-const table
+let table
 const frontendState = {
     height: 0,
     width: 0,
@@ -15,12 +16,19 @@ const frontendState = {
     scrolled: 0, //? In pixels
 }
 
+const sort = createNewSortInstance({
+    comparer: new Intl.Collator(undefined, {
+        numeric: true,
+        sensitivity: 'base',
+    }).compare
+})
+
 onmessage = (e) => {
     const msg = e.data
 
     switch (msg.type) {
         case CONTEXT_MSG_TYPE:
-            table = msg.table
+            table = new TableData(msg.headers, msg.data)
             break
         case EVENT_REQUEST_ROWS:
             postMessage({

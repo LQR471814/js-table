@@ -1,4 +1,4 @@
-<svelte:options tag="js-table-row"></svelte:options>
+<svelte:options tag="js-table-row" />
 
 <script lang="ts">
     export let row: RowData
