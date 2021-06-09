@@ -19,17 +19,34 @@
     let backend: Worker
     let root: HTMLTableElement
 
+    function appendRows(rows: RowData[]) {
+        for (const row of rows) {
+            appendRow(row)
+        }
+    }
+
     function appendRow(rowData: RowData) {
         const row = document.createElement('tr')
 
         for (const cellData of rowData) {
             const cell = document.createElement('td')
-            cell.innerText = cellData
+            cell.innerText = cellData.data
 
             row.append(cell)
         }
 
         root.append(row)
+    }
+
+    function clear() {
+        //? Copy children to avoid array weirdness because this value updates when you remove a child
+        const rootChildren = [...root.children]
+
+        for (const child of rootChildren) {
+            if (child.className !== "header") {
+                child.remove()
+            }
+        }
     }
 
     onMount(() => {
@@ -39,12 +56,13 @@
 
             switch (msg.type) {
                 case EVENT_SORT:
-                    console.log(msg)
+                    clear()
+
+                    appendRows(msg.rows)
                     break
+
                 case EVENT_REQUEST_ROWS:
-                    for (const row of msg.rows) {
-                        appendRow(row)
-                    }
+                    appendRows(msg.rows)
                     break
 
             }
@@ -59,7 +77,7 @@
         backend.postMessage({
             type: EVENT_REQUEST_ROWS,
             start: 0,
-            end: -1
+            end: 0
         })
     })
 </script>
@@ -79,7 +97,6 @@
         {/each}
         <td style="display: none">To keep encapsulated tableData styles</td>
     </tr>
-
 </table>
 
 <style>

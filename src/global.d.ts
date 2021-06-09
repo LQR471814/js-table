@@ -1,1 +1,5 @@
-type RowData = Array<string>;
+type RowData = Array<CellData>;
+interface CellData {
+    rowIndex: number,
+    data: string
+}

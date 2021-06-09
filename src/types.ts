@@ -1,12 +1,14 @@
 import FlexSearch from "flexsearch"
 
+//? Note: Restart dev server every time a change is made to this file (otherwise source won't update)
+
 export class TableData {
     headers: string[]
     rows: RowData[]
     columnIndices: FlexSearch[]
     numberRowsIndex: number
 
-    constructor(headers: string[], data?: RowData[]) {
+    constructor(headers: string[], data?: string[][]) { //? 'data' is list of rows
         this.headers = headers
 
         this.columnIndices = []
@@ -16,11 +18,22 @@ export class TableData {
         }
 
         this.rows = []
-        this.numberRowsIndex = this.rows.length
+        this.numberRowsIndex = 0
 
         if (data) {
-            for (const row of data) {
-                this.addRow(row)
+            for (let y = 0; y < data.length; y++) {
+                const indexedRow = []
+                for (const cell of data[y]) {
+                    /* Add index to row because sort & search
+                        needs to know sorted indices rather than
+                        searched & sorted column */
+                    indexedRow.push({
+                        rowIndex: y,
+                        data: cell,
+                    })
+                }
+
+                this.addRow(indexedRow)
             }
         }
     }
@@ -31,12 +44,9 @@ export class TableData {
             return
         }
 
-        for (let i = 0; i < this.headers.length; i++) {
+        for (let i = 0; i < row.length; i++) {
             //@ts-ignore
-            this.columnIndices[i].add(this.numberRowsIndex, {
-                data: row[i],
-                index: this.numberRowsIndex
-            })
+            this.columnIndices[i].add(i, row[i])
         }
 
         this.rows.push(row)
@@ -47,13 +57,13 @@ export class TableData {
         return this.rows.slice(start, end)
     }
 
-    fetchColumn(index: number, rows?: number) {
-        if (!rows) {
-            rows = this.numberRowsIndex
+    fetchColumn(index: number, countRows?: number) {
+        if (!countRows) {
+            countRows = this.numberRowsIndex //? Actually represents length, not index of last row
         }
 
         const column = []
-        for (let i = 0; i < rows; i++)  {
+        for (let i = 0; i < countRows; i++)  {
             column.push(this.rows[i][index])
         }
 

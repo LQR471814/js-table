@@ -32,6 +32,6 @@
 <main>
 	<js-table
 		headers="{generateTableHeaders(20)}"
-		data="{generateTableData(100, 20)}"
+		data="{generateTableData(1000, 20)}"
 	/>
 </main>

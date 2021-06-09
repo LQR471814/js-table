@@ -33,22 +33,29 @@ onmessage = (e) => {
         case EVENT_REQUEST_ROWS:
             postMessage({
                 type: EVENT_REQUEST_ROWS,
-                rows: table.fetchRows(msg.start, msg.end)
-            })
+                rows: (msg.start === msg.end) ? table.rows : table.fetchRows(msg.start, msg.end)
+            }) //? Return all rows if start is equal to end
 
             break
         case EVENT_SORT:
             let sorted = sort(table.fetchColumn(msg.col, msg.rows))
 
             if (msg.direction > 0) { //? 1: Ascending
-                sorted = sorted.asc()
+                sorted = sorted.asc(cell => cell.data)
             } else { //? -1: Descending
-                sorted = sorted.desc()
+                sorted = sorted.desc(cell => cell.data)
             }
+
+            const resultRows = []
+            for (const sortedEntry of sorted) {
+                resultRows.push(table.rows[sortedEntry.rowIndex])
+            }
+
+            console.log(resultRows)
 
             postMessage({
                 type: EVENT_SORT,
-                rows: sorted
+                rows: resultRows
             })
 
             break
