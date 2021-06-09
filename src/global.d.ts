@@ -1,1 +1,1 @@
-type RowData = Array<any>;
+type RowData = Array<string>;

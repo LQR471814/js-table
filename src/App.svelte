@@ -1,27 +1,35 @@
+<svelte:options tag="js-table-demo"></svelte:options>
+
 <script lang="ts">
 	import Table from './Table/Table.svelte'
-    import { TableData } from './types'
 
-	function generateTableData(rows: number, columns: number) {
+	function generateTableHeaders(columns: number) {
 		const headers = []
 		for (let i = 0; i < columns; i++) {
 			headers.push(`Header ${i}`)
 		}
 
-		const table = new TableData(headers)
+		return headers
+	}
+
+	function generateTableData(rows: number, columns: number) {
+		const data = []
 
 		for (let y = 0; y < rows; y++) {
 			const row = []
 			for (let x = 0; x < columns; x++) {
-				row.push(x)
+				row.push(Math.round(Math.random() * 100))
 			}
-			table.addRow(row)
+			data.push(row)
 		}
 
-		return table
+		return data
 	}
+
+	const headers = generateTableHeaders(20)
+	const data = generateTableData(100, 20)
 </script>
 
 <main>
-	<Table table={generateTableData(100, 20)} />
+	<Table {headers} {data} />
 </main>

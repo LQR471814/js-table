@@ -1,5 +1,5 @@
-const x = 100
-const y = 100
+const x = 10
+const y = 10000
 
 function time(func) {
     const t1 = performance.now()

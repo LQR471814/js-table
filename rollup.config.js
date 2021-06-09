@@ -9,6 +9,9 @@ import sveltePreprocess from 'svelte-preprocess';
 import typescript from '@rollup/plugin-typescript';
 import css from 'rollup-plugin-css-only';
 
+const path = require('path')
+const fs = require('fs')
+
 const production = !process.env.ROLLUP_WATCH;
 
 function serve() {
@@ -41,12 +44,25 @@ export default {
 		file: 'public/build/bundle.js'
 	},
 	plugins: [
+		{
+			name: 'load-backend-worker',
+			load() {
+				this.addWatchFile(path.resolve('./src/Table/backend.js'));
+			},
+			generateBundle() {
+				fs.copyFileSync(
+					path.resolve('./src/Table/backend.js'),
+					path.resolve('./public/build/backend.js')
+				);
+			}
+		},
 		svelte({
 			preprocess: sveltePreprocess({
 				sourceMap: !production
 			}),
 			compilerOptions: {
 				// enable run-time checks when not in production
+				customElement: true,
 				dev: !production
 			}
 		}),

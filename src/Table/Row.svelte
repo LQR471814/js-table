@@ -1,17 +1,11 @@
+<svelte:options tag="js-table-row"></svelte:options>
+
 <script lang="ts">
-    export let rowData: RowData
-    export let columnGap
-    export let heightGap
+    export let row: RowData
 </script>
 
-<div style="margin-bottom: {heightGap}; margin-top: {heightGap}">
-    {#each rowData as col}
-        <span style="margin-left: {columnGap}; margin-right: {columnGap}">{col}</span>
+<tr>
+    {#each row as cell}
+        <td>{cell}</td>
     {/each}
-</div>
-
-<style>
-    div {
-        display: flex
-    }
-</style>
+</tr>
