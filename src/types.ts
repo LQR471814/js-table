@@ -90,7 +90,7 @@ interface FRONTEND_SORT_MSG {
 	type: string
 	col: number
 	rows: number
-	direction: number //? 1: Asc, -1: Desc, 0: None
+	direction: number //? 1: Asc, 2: Desc, 0: None
 }
 interface BACKEND_SORT_MSG {
 	type: string

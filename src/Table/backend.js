@@ -41,11 +41,11 @@ onmessage = (e) => {
 			const column = table.fetchColumn(msg.col)
 			let sorted = sort(column)
 
-			if (msg.direction > 0) { //? 1: Ascending
+			if (msg.direction === 1) { //? 1: Ascending
 				sorted = sorted.asc(cell => cell.data)
-			} else if (msg.direction < 0) { //? -1: Descending
+			} else if (msg.direction === 2) { //? 2: Descending
 				sorted = sorted.desc(cell => cell.data)
-			} else {
+			} else { //? 0: Default
 				sorted = column
 			}
 

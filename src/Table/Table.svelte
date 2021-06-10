@@ -1,7 +1,6 @@
 <svelte:options tag="js-table" />
 
 <script lang="ts">
-	import './Arrow.svelte'
 	import { range } from "../utils"
 
 	import {
@@ -54,6 +53,19 @@
 		}
 	}
 
+	function directionStateFromValue(value: number) {
+		switch (lastSorted.direction) {
+			case 0: //? Ascending
+				return 1
+			case 1: //? Descending
+				return -1
+			case 2: //? None
+				return 0
+			default: //? Reset direction value otherwise
+				return
+		}
+	}
+
 	backend = new BackendWorker()
 	backend.onmessage = (e) => {
 		const msg = e.data
@@ -72,6 +84,9 @@
 	}
 
 	onMount(() => {
+		// I have to put this code here cause for some
+		// reason props aren't available until mount
+
 		backend.postMessage({
 			type: CONTEXT_MSG_TYPE,
 			headers: headers,
@@ -93,28 +108,20 @@
 <table bind:this={root}>
 	<tr class="header">
 		{#each range(0, headers.length) as i}
-			<th on:click={ //? OnSort
-				() => {
-					//? Sort the other direction if repeating sort on same column
+			<th on:click={
+				() => { //? OnSort
 
-					let direction = 1 //? Ascending is default
+					//? Sort the other direction if repeating sort on same column
+					//? Reset sorting if direction is descending
 
 					if (lastSorted.value === i) {
 						lastSorted.direction += 1
-						switch (lastSorted.direction) {
-							case 0: //? Ascending
-								direction = 1
-								break
-							case 1: //? Descending
-								direction = -1
-								break
-							case 2: //? None
-								direction = 0
-								break
-							default:
-								lastSorted.direction = 0
-								break
+
+						if (lastSorted.direction > 2) {
+							lastSorted.direction = 0
 						}
+					} else { //? So ascending sort is still default
+						lastSorted.direction = 1
 					}
 
 					lastSorted.value = i
@@ -123,11 +130,30 @@
 						type: EVENT_SORT,
 						col: i,
 						rows: 26,
-						direction: direction,
+						direction: lastSorted.direction,
 					})
 				}
 			}>
-				{headers[i]}
+				<span>{headers[i]}</span>
+				{#if lastSorted.value === i}
+					<svg
+						style={ (lastSorted.direction === 1) ? 'transform: rotate(-90deg)'
+								: (lastSorted.direction === 2) ? 'transform: rotate(90deg)'
+								: 'fill: transparent' }
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="6 0 12 24"
+					>
+						<path d="M6 0l12 12-12 12z"></path>
+					</svg>
+				{:else}
+					<svg
+						style="fill: transparent"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="6 0 12 24"
+					>
+						<path d="M6 0l12 12-12 12z"></path>
+					</svg>
+				{/if}
 			</th>
 		{/each}
 	</tr>
@@ -154,9 +180,6 @@
 
 	th, td {
 		color: var(--lighter);
-
-		padding: 10px;
-
 		white-space: nowrap;
 	}
 
@@ -166,11 +189,31 @@
 		cursor: default;
 	}
 
+	td {
+		padding: 10px;
+	}
+
+	th {
+		padding: 10px;
+		user-select: none; /* Deprecated for some reason, not quite sure why */
+	}
+
+	th > span {
+		display: block;
+	}
+
 	table {
 		width: 100%;
 		border-spacing: 0;
 
 		background-color: var(--neutral);
+	}
+
+	svg {
+		fill: var(--lighter);
+
+		width: auto;
+		height: 12px;
 	}
 
 	.header {
