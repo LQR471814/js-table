@@ -1,5 +1,5 @@
 type RowData = Array<CellData>;
 interface CellData {
-    rowIndex: number,
-    data: string
+	rowIndex: number,
+	data: string
 }
