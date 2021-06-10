@@ -57,13 +57,9 @@ export class TableData {
 		return this.rows.slice(start, end)
 	}
 
-	fetchColumn(index: number, countRows?: number) {
-		if (!countRows) {
-			countRows = this.numberRowsIndex //? Actually represents length, not index of last row
-		}
-
+	fetchColumn(index: number) {
 		const column = []
-		for (let i = 0; i < countRows; i++)  {
+		for (let i = 0; i < this.numberRowsIndex; i++)  {
 			column.push(this.rows[i][index])
 		}
 
@@ -94,6 +90,7 @@ interface FRONTEND_SORT_MSG {
 	type: string
 	col: number
 	rows: number
+	direction: number //? 1: Asc, -1: Desc, 0: None
 }
 interface BACKEND_SORT_MSG {
 	type: string

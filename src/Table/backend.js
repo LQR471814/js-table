@@ -38,12 +38,15 @@ onmessage = (e) => {
 
 			break
 		case EVENT_SORT:
-			let sorted = sort(table.fetchColumn(msg.col, msg.rows))
+			const column = table.fetchColumn(msg.col)
+			let sorted = sort(column)
 
 			if (msg.direction > 0) { //? 1: Ascending
 				sorted = sorted.asc(cell => cell.data)
-			} else { //? -1: Descending
+			} else if (msg.direction < 0) { //? -1: Descending
 				sorted = sorted.desc(cell => cell.data)
+			} else {
+				sorted = column
 			}
 
 			const resultRows = []
@@ -51,11 +54,9 @@ onmessage = (e) => {
 				resultRows.push(table.rows[sortedEntry.rowIndex])
 			}
 
-			console.log(resultRows)
-
 			postMessage({
 				type: EVENT_SORT,
-				rows: resultRows
+				rows: resultRows.slice(0, msg.rows)
 			})
 
 			break

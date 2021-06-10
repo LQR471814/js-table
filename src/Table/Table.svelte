@@ -20,6 +20,10 @@
 	let backend: Worker
 	let root: HTMLTableElement
 
+	let currentRows: RowData[] = []
+
+	const lastSorted = { value: -1, direction: 0 }
+
 	function appendRows(rows: RowData[]) {
 		for (const row of rows) {
 			appendRow(row)
@@ -50,25 +54,24 @@
 		}
 	}
 
-	onMount(() => {
-		backend = new BackendWorker()
-		backend.onmessage = (e) => {
-			const msg = e.data
+	backend = new BackendWorker()
+	backend.onmessage = (e) => {
+		const msg = e.data
 
-			switch (msg.type) {
-				case EVENT_SORT:
-					clear()
+		switch (msg.type) {
+			case EVENT_SORT:
+				// clear()
+				currentRows = msg.rows
+				break
 
-					appendRows(msg.rows)
-					break
+			case EVENT_REQUEST_ROWS:
+				currentRows = msg.rows
+				break
 
-				case EVENT_REQUEST_ROWS:
-					appendRows(msg.rows)
-					break
-
-			}
 		}
+	}
 
+	onMount(() => {
 		backend.postMessage({
 			type: CONTEXT_MSG_TYPE,
 			headers: headers,
@@ -78,26 +81,64 @@
 		backend.postMessage({
 			type: EVENT_REQUEST_ROWS,
 			start: 0,
-			end: 0
+			end: 26
 		})
+
+		return () => {
+			backend.terminate()
+		}
 	})
 </script>
 
 <table bind:this={root}>
 	<tr class="header">
 		{#each range(0, headers.length) as i}
-			<th on:click={
-				() => backend.postMessage({
-					type: EVENT_SORT,
-					col: i,
-					direction: 1,
-				})
+			<th on:click={ //? OnSort
+				() => {
+					//? Sort the other direction if repeating sort on same column
+
+					let direction = 1 //? Ascending is default
+
+					if (lastSorted.value === i) {
+						lastSorted.direction += 1
+						switch (lastSorted.direction) {
+							case 0: //? Ascending
+								direction = 1
+								break
+							case 1: //? Descending
+								direction = -1
+								break
+							case 2: //? None
+								direction = 0
+								break
+							default:
+								lastSorted.direction = 0
+								break
+						}
+					}
+
+					lastSorted.value = i
+
+					backend.postMessage({
+						type: EVENT_SORT,
+						col: i,
+						rows: 26,
+						direction: direction,
+					})
+				}
 			}>
 				{headers[i]}
 			</th>
 		{/each}
-		<td style="display: none">To keep encapsulated tableData styles</td>
 	</tr>
+
+	{#each currentRows as row}
+		<tr>
+			{#each row as cell}
+				<td>{cell.data}</td>
+			{/each}
+		</tr>
+	{/each}
 </table>
 
 <style>
@@ -115,6 +156,8 @@
 		color: var(--lighter);
 
 		padding: 10px;
+
+		white-space: nowrap;
 	}
 
 	th:hover, td:hover {
