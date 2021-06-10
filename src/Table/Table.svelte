@@ -53,19 +53,6 @@
 		}
 	}
 
-	function directionStateFromValue(value: number) {
-		switch (lastSorted.direction) {
-			case 0: //? Ascending
-				return 1
-			case 1: //? Descending
-				return -1
-			case 2: //? None
-				return 0
-			default: //? Reset direction value otherwise
-				return
-		}
-	}
-
 	backend = new BackendWorker()
 	backend.onmessage = (e) => {
 		const msg = e.data
@@ -139,15 +126,7 @@
 					<svg
 						style={ (lastSorted.direction === 1) ? 'transform: rotate(-90deg)'
 								: (lastSorted.direction === 2) ? 'transform: rotate(90deg)'
-								: 'fill: transparent' }
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="6 0 12 24"
-					>
-						<path d="M6 0l12 12-12 12z"></path>
-					</svg>
-				{:else}
-					<svg
-						style="fill: transparent"
+								: 'display: none' }
 						xmlns="http://www.w3.org/2000/svg"
 						viewBox="6 0 12 24"
 					>
