@@ -158,6 +158,8 @@
 	}
 
 	th, td {
+		padding: 10px;
+
 		color: var(--lighter);
 		white-space: nowrap;
 	}
@@ -168,17 +170,8 @@
 		cursor: default;
 	}
 
-	td {
-		padding: 10px;
-	}
-
 	th {
-		padding: 10px;
 		user-select: none; /* Deprecated for some reason, not quite sure why */
-	}
-
-	th > span {
-		display: block;
 	}
 
 	table {
@@ -193,6 +186,8 @@
 
 		width: auto;
 		height: 12px;
+
+		margin-left: 12px;
 	}
 
 	.header {
