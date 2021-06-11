@@ -35,3 +35,9 @@
 		data="{generateTableData(1000, 20)}"
 	/>
 </main>
+
+<style>
+	main {
+		height: 100vh;
+	}
+</style>

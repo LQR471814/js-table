@@ -10,18 +10,54 @@
 		EVENT_SEARCH,
 	} from '../types'
 
-	import { onMount } from 'svelte';
+	import { beforeUpdate, onMount } from 'svelte';
 	import BackendWorker from 'web-worker:./backend.js'
 
 	export let headers: string[] = []
 	export let data: RowData[] = []
+	export let dimensions: { x: string, y: string } = { x: "100%", y: "100%" }
 
 	let backend: Worker
-	let root: HTMLTableElement
+	let table: HTMLTableElement
+	let frame: HTMLDivElement
 
 	let currentRows: RowData[] = []
 
-	const lastSorted = { value: -1, direction: 0 }
+	const calculatedDimensions = {
+		rowHeight: 0,
+		viewportHeight: 0
+	}
+
+	const lastSorted = {
+		value: -1,
+		direction: 0
+	}
+
+	const updateRowHeight = () => {
+		const measureRow = document.createElement('tr')
+		const rowElement = document.createElement('td')
+		rowElement.innerText = "a"
+
+		measureRow.append(rowElement)
+
+		table.append(measureRow)
+		calculatedDimensions.rowHeight = measureRow.getBoundingClientRect().height
+
+		measureRow.remove()
+	}
+
+	const updateTableDimensions = () => {
+		calculatedDimensions.viewportHeight = frame.getBoundingClientRect().height
+	}
+
+	const updateCalculatedDimensions = () => {
+		updateRowHeight()
+		updateTableDimensions()
+	}
+
+	const getTableRowCapacity = () => {
+		return Math.round(calculatedDimensions.viewportHeight / calculatedDimensions.rowHeight)
+	}
 
 	function appendRows(rows: RowData[]) {
 		for (const row of rows) {
@@ -39,12 +75,12 @@
 			row.append(cell)
 		}
 
-		root.append(row)
+		table.append(row)
 	}
 
 	function clear() {
 		//? Copy children to avoid array weirdness because this value updates when you remove a child
-		const rootChildren = [...root.children]
+		const rootChildren = [...table.children]
 
 		for (const child of rootChildren) {
 			if (child.className !== "header") {
@@ -59,7 +95,6 @@
 
 		switch (msg.type) {
 			case EVENT_SORT:
-				// clear()
 				currentRows = msg.rows
 				break
 
@@ -71,6 +106,8 @@
 	}
 
 	onMount(() => {
+		updateCalculatedDimensions()
+
 		// I have to put this code here cause for some
 		// reason props aren't available until mount
 
@@ -83,7 +120,7 @@
 		backend.postMessage({
 			type: EVENT_REQUEST_ROWS,
 			start: 0,
-			end: 26
+			end: getTableRowCapacity()
 		})
 
 		return () => {
@@ -92,59 +129,64 @@
 	})
 </script>
 
-<table bind:this={root}>
-	<tr class="header">
-		{#each range(0, headers.length) as i}
-			<th on:click={
-				() => { //? OnSort
+<div
+	style="--width: {dimensions.x}; --height: {dimensions.y}"
+	bind:this={frame}
+>
+	<table bind:this={table}>
+		<tr class="header">
+			{#each range(0, headers.length) as i}
+				<th on:click={
+					() => { //? OnSort
 
-					//? Sort the other direction if repeating sort on same column
-					//? Reset sorting if direction is descending
+						//? Sort the other direction if repeating sort on same column
+						//? Reset sorting if direction is descending
 
-					if (lastSorted.value === i) {
-						lastSorted.direction += 1
+						if (lastSorted.value === i) {
+							lastSorted.direction += 1
 
-						if (lastSorted.direction > 2) {
-							lastSorted.direction = 0
+							if (lastSorted.direction > 2) {
+								lastSorted.direction = 0
+							}
+						} else { //? So ascending sort is still default
+							lastSorted.direction = 1
 						}
-					} else { //? So ascending sort is still default
-						lastSorted.direction = 1
+
+						lastSorted.value = i
+
+						backend.postMessage({
+							type: EVENT_SORT,
+							col: i,
+							rows: getTableRowCapacity(),
+							direction: lastSorted.direction,
+						})
 					}
-
-					lastSorted.value = i
-
-					backend.postMessage({
-						type: EVENT_SORT,
-						col: i,
-						rows: 26,
-						direction: lastSorted.direction,
-					})
-				}
-			}>
-				<span>{headers[i]}</span>
-				{#if lastSorted.value === i}
-					<svg
-						style={ (lastSorted.direction === 1) ? 'transform: rotate(-90deg)'
-								: (lastSorted.direction === 2) ? 'transform: rotate(90deg)'
-								: 'display: none' }
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="6 0 12 24"
-					>
-						<path d="M6 0l12 12-12 12z"></path>
-					</svg>
-				{/if}
-			</th>
-		{/each}
-	</tr>
-
-	{#each currentRows as row}
-		<tr>
-			{#each row as cell}
-				<td>{cell.data}</td>
+				}>
+					<span>{headers[i]}</span>
+					{#if lastSorted.value === i}
+						<svg
+							style={ (lastSorted.direction === 1) ? 'transform: rotate(-90deg)'
+									: (lastSorted.direction === 2) ? 'transform: rotate(90deg)'
+									: 'display: none' }
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="6 0 12 24"
+						>
+							<path d="M6 0l12 12-12 12z"></path>
+						</svg>
+					{/if}
+				</th>
 			{/each}
 		</tr>
-	{/each}
-</table>
+
+		{#each currentRows as row}
+			<tr>
+				{#each row as cell}
+					<td>{cell.data}</td>
+				{/each}
+			</tr>
+		{/each}
+	</table>
+</div>
 
 <style>
 	:root {
@@ -172,6 +214,13 @@
 
 	th {
 		user-select: none; /* Deprecated for some reason, not quite sure why */
+	}
+
+	div {
+		height: var(--height);
+		width: var(--width);
+
+		overflow: auto;
 	}
 
 	table {
