@@ -67,25 +67,27 @@ export class TableData {
 	}
 }
 
-export const CONTEXT_MSG_TYPE = "context"
+export const CONTEXT_MSG_TYPE = 0
 interface FRONTEND_CONTEXT_MSG {
 	type: string
 	headers: string[]
 	data: RowData[]
 }
 
-export const EVENT_REQUEST_ROWS = "request_rows"
+export const EVENT_REQUEST_ROWS = 1
 interface FRONTEND_REQUEST_ROWS_MSG {
 	type: string
 	start: number
 	end: number
+	scrolling: number //? If defined, backend will use cached sort / search rows (1: append at end, -1: append at top)
 }
 interface BACKEND_REQUEST_ROWS_MSG {
 	type: string
 	rows: RowData[]
+	scrolling: number //? Indicates if request was a scrolling request (1: append at end, -1: append at top)
 }
 
-export const EVENT_SORT = "sort"
+export const EVENT_SORT = 2
 interface FRONTEND_SORT_MSG {
 	type: string
 	col: number
@@ -97,7 +99,7 @@ interface BACKEND_SORT_MSG {
 	rows: RowData[]
 }
 
-export const EVENT_SEARCH = "search"
+export const EVENT_SEARCH = 3
 interface FRONTEND_SEARCH_MSG {
 	type: string
 	filters: SearchFilter

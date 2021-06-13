@@ -10,10 +10,7 @@ import { createNewSortInstance } from 'fast-sort'
 
 let table
 const frontendState = {
-	height: 0,
-	width: 0,
-	rowsize: 0,
-	scrolled: 0, //? In pixels
+	sortDirection: 0
 }
 
 const sort = createNewSortInstance({
@@ -23,6 +20,8 @@ const sort = createNewSortInstance({
 	}).compare
 })
 
+let currentCachedRows
+
 onmessage = (e) => {
 	const msg = e.data
 
@@ -31,9 +30,20 @@ onmessage = (e) => {
 			table = new TableData(msg.headers, msg.data)
 			break
 		case EVENT_REQUEST_ROWS:
+			let returnRows
+
+			console.log(msg.end)
+
+			if (currentCachedRows && msg.scrolling) {
+				returnRows = currentCachedRows.splice(msg.start, msg.end)
+			} else {
+				returnRows = table.fetchRows(msg.start, msg.end)
+			}
+
 			postMessage({
 				type: EVENT_REQUEST_ROWS,
-				rows: (msg.start === msg.end) ? table.rows : table.fetchRows(msg.start, msg.end)
+				rows: returnRows,
+				scrolling: msg.scrolling
 			}) //? Return all rows if start is equal to end
 
 			break
@@ -49,10 +59,14 @@ onmessage = (e) => {
 				sorted = column
 			}
 
+			frontendState.sortDirection = msg.direction
+
 			const resultRows = []
 			for (const sortedEntry of sorted) {
 				resultRows.push(table.rows[sortedEntry.rowIndex])
 			}
+
+			currentCachedRows = resultRows
 
 			postMessage({
 				type: EVENT_SORT,

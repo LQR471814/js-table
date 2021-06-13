@@ -2,20 +2,24 @@
 
 <head>
     <style>
+        body {
+            margin: 0;
+        }
+
         .container {
             height: 400px;
-            overflow: scroll;
+            overflow: auto;
         }
 
         span {
             display: block;
-            font-size: 48px;
+            font-size: 50px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
+    <div class="container" id="container">
         <span id="target">test1</span>
         <span>test2</span>
         <span>test3</span>
@@ -31,8 +35,39 @@
         <span>test13</span>
         <span>test14</span>
         <span>test15</span>
+        <span>test16</span>
+        <span>test17</span>
+        <span>test18</span>
+        <span>test19</span>
+        <span>test20</span>
     </div>
+
     <button onclick="document.getElementById('target').remove()">
         Remove
     </button>
+
+    <button onclick="document.getElementById('container').append(
+        Object.assign(
+            document.createElement('span'),
+            {innerText: 'test'}
+        )
+    )">
+        Add
+    </button>
+
+    <button onclick="document.getElementById('container').scrollBy(0, 58)">
+        Scroll Down 58px
+    </button>
+
+    <button onclick="document.getElementById('container').scrollBy(0, -58)">
+        Scroll Up 58px
+    </button>
+
+    <script>
+        console.log(document.getElementById('target').getBoundingClientRect())
+        document.getElementById('container').onscroll = (e) => {
+            console.log(e.target.scrollTop, e.target.scrollHeight)
+            console.log(e.target.scrollTop / e.target.scrollHeight)
+        }
+    </script>
 </body>
