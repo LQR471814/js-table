@@ -29,43 +29,48 @@
 
 	const calculatedDimensions = {
 		rowHeight: 0,
-		viewportHeight: 0
+		viewportHeight: 0,
+		tableRowCapacity: 0,
+
+		update: function() {
+			this.viewportHeight = this.getFrameHeight()
+			this.rowHeight = this.getRowHeight()
+
+			this.tableRowCapacity = this.getTableRowCapacity()
+		},
+
+		getRowHeight: () => {
+			const measureRow = document.createElement('tr')
+			const rowElement = document.createElement('td')
+			rowElement.innerText = "a"
+
+			measureRow.append(rowElement)
+
+			table.append(measureRow)
+			const height = measureRow.getBoundingClientRect().height
+
+			measureRow.remove()
+
+			return height
+		},
+
+		getFrameHeight: () => {
+			return frame.getBoundingClientRect().height
+		},
+
+		getTableRowCapacity: () => {
+			return Math.round(
+				(
+					calculatedDimensions.viewportHeight /
+					calculatedDimensions.rowHeight
+				) * 1.1 //? To allow for scrolling room
+			)
+		}
 	}
 
 	const lastSorted = {
 		value: -1,
 		direction: 0
-	}
-
-	const updateRowHeight = () => {
-		const measureRow = document.createElement('tr')
-		const rowElement = document.createElement('td')
-		rowElement.innerText = "a"
-
-		measureRow.append(rowElement)
-
-		table.append(measureRow)
-		calculatedDimensions.rowHeight = measureRow.getBoundingClientRect().height
-
-		measureRow.remove()
-	}
-
-	const updateTableDimensions = () => {
-		calculatedDimensions.viewportHeight = frame.getBoundingClientRect().height
-	}
-
-	const updateCalculatedDimensions = () => {
-		updateRowHeight()
-		updateTableDimensions()
-	}
-
-	const getTableRowCapacity = () => {
-		return Math.round(
-			(
-				calculatedDimensions.viewportHeight /
-				calculatedDimensions.rowHeight
-			) * 1.1 //? To allow for scrolling room
-		)
 	}
 
 	function appendRows(rows: RowData[], top?: boolean) {
@@ -91,8 +96,8 @@
 		table.append(row)
 	}
 
-	function removeRows(start: number, end: number) {
-		for (const child of Array.from(table.children).slice(start + 1, end + 1)) {
+	function removeRows(start: number, end?: number) {
+		for (const child of Array.from(table.children).slice(start, end)) {
 			child.remove()
 		}
 	}
@@ -123,19 +128,25 @@
 					return
 				}
 
-				if (msg.scrolling > 0) {
-					appendRowBuffer += calculatedDimensions.rowHeight
+				if (msg.scrolling) {
+					appendRowBuffer += calculatedDimensions.rowHeight * msg.scrolling
 
-					const tableRowCapacity = getTableRowCapacity()
+					const tableRowCapacity = calculatedDimensions.tableRowCapacity
 					if (table.children.length - 1 > tableRowCapacity * 1.2) {
 						const moreBy = (table.children.length) - tableRowCapacity * 1.2
 
-						removeRows(0, Math.round(moreBy))
+						if (msg.scrolling > 0) {
+							removeRows(2, Math.round(moreBy))
+						} else {
+							console.log('remove')
+							removeRows(-Math.round(moreBy)) //? Slice num of elements from end
+						}
 					}
 
-					appendRows(msg.rows)
-				} else {
-					appendRows(msg.rows, true)
+					appendRows(
+						msg.rows,
+						msg.scrolling < 0 ? true : false
+					)
 				}
 
 				break
@@ -144,7 +155,7 @@
 	}
 
 	onMount(() => {
-		updateCalculatedDimensions()
+		calculatedDimensions.update()
 
 		// I have to put this code here cause for some
 		// reason props aren't available until mount
@@ -158,10 +169,10 @@
 		backend.postMessage({
 			type: EVENT_REQUEST_ROWS,
 			start: 0,
-			end: getTableRowCapacity()
+			end: calculatedDimensions.tableRowCapacity
 		})
 
-		lazyLoadStartPos = getTableRowCapacity()
+		lazyLoadStartPos = calculatedDimensions.tableRowCapacity
 
 		return () => {
 			backend.terminate()
@@ -196,6 +207,8 @@
 	}}
 >
 	<table bind:this={table}>
+		<div style="height: 200px;"></div>
+
 		<tr class="header">
 			{#each range(0, headers.length) as i}
 				<th on:click={
@@ -219,7 +232,7 @@
 						backend.postMessage({
 							type: EVENT_SORT,
 							col: i,
-							rows: getTableRowCapacity(),
+							rows: calculatedDimensions.tableRowCapacity,
 							direction: lastSorted.direction,
 						})
 					}
