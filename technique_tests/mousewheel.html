@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+<head>
+    <style>
+        .container {
+            height: 400px;
+            width: 200px;
+            overflow: auto;
+        }
+
+        span {
+            display: block;
+            font-size: 50px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="container">
+        <span>test1</span>
+        <span>test2</span>
+        <span>test3</span>
+        <span>test4</span>
+        <span>test5</span>
+        <span>test6</span>
+        <span>test7</span>
+        <span>test8</span>
+        <span>test9</span>
+        <span>test10</span>
+        <span>test11</span>
+        <span>test12</span>
+        <span>test13</span>
+        <span>test14</span>
+        <span>test15</span>
+    </div>
+
+    <script>
+        function $(selector) { //? Bootleg jQuery
+            return document.querySelector(selector)
+        }
+
+        const container = $('#container')
+
+		container.addEventListener('wheel', (e) => {
+			console.log(e)
+		})
+    </script>
+</body>

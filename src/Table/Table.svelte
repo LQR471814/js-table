@@ -13,9 +13,20 @@
 	import { onMount } from 'svelte';
 	import BackendWorker from 'web-worker:./backend.js'
 
+	//? Props
 	export let headers: string[] = []
 	export let data: RowData[] = []
 	export let dimensions: { x: string, y: string } = { x: "100%", y: "100%" }
+
+	//? Constants
+
+	/** delMargin specifies how many times the tableRowCapacity can the table have
+		when going over this margin, rows from either the front or back
+		depending on scroll direciton will be removed until it satisfies this
+		limit **/
+	const delMargin = 1.6
+
+	//? Variables
 
 	let backend: Worker
 	let table: HTMLTableElement
@@ -24,8 +35,12 @@
 	let currentRows: RowData[] = []
 
 	let scrollPosition = 0
-	let lazyLoadStartPos = 0
 	let appendRowBuffer = 0
+
+	const displayRowsRange = {
+		start: 0,
+		end: 0,
+	}
 
 	const calculatedDimensions = {
 		rowHeight: 0,
@@ -86,14 +101,14 @@
 			const cell = document.createElement('td')
 			cell.innerText = cellData.data
 
-			if (!top) {
-				row.append(cell)
-			} else { //? Append before first row that isn't the headers
-				row.insertBefore(cell, row.children[1])
-			}
+			row.append(cell)
 		}
 
-		table.append(row)
+		if (!top) {
+			table.append(row)
+		} else { //? Append before first row that isn't the headers
+			table.insertBefore(row, table.children[1])
+		}
 	}
 
 	function removeRows(start: number, end?: number) {
@@ -128,25 +143,34 @@
 					return
 				}
 
-				if (msg.scrolling) {
-					appendRowBuffer += calculatedDimensions.rowHeight * msg.scrolling
+				//? Cancel out browser auto-scroll
+				appendRowBuffer += calculatedDimensions.rowHeight * msg.scrolling
+				const scrollingUpwards = msg.scrolling < 0 ? true : false
 
-					const tableRowCapacity = calculatedDimensions.tableRowCapacity
-					if (table.children.length - 1 > tableRowCapacity * 1.2) {
-						const moreBy = (table.children.length) - tableRowCapacity * 1.2
-
-						if (msg.scrolling > 0) {
-							removeRows(2, Math.round(moreBy))
-						} else {
-							console.log('remove')
-							removeRows(-Math.round(moreBy)) //? Slice num of elements from end
-						}
-					}
-
-					appendRows(
-						msg.rows,
-						msg.scrolling < 0 ? true : false
+				const tableRowCapacity = calculatedDimensions.tableRowCapacity
+				if (table.children.length - 1 > tableRowCapacity * delMargin) { //? Check row number overflow
+					const moreBy = Math.round(
+						(table.children.length) - tableRowCapacity * delMargin
 					)
+
+					if (msg.scrolling > 0) {
+						displayRowsRange.start += moreBy
+						removeRows(1, moreBy + 1)
+					} else {
+						displayRowsRange.end -= moreBy
+						removeRows(-moreBy) //? Slice num of elements from end
+					}
+				}
+
+				appendRows(
+					msg.rows,
+					scrollingUpwards,
+				)
+
+				if (scrollingUpwards) {
+					displayRowsRange.start -= msg.rows.length
+				} else {
+					displayRowsRange.end += msg.rows.length
 				}
 
 				break
@@ -172,7 +196,7 @@
 			end: calculatedDimensions.tableRowCapacity
 		})
 
-		lazyLoadStartPos = calculatedDimensions.tableRowCapacity
+		displayRowsRange.end = calculatedDimensions.tableRowCapacity
 
 		return () => {
 			backend.terminate()
@@ -192,14 +216,24 @@
 		if (Math.abs(appendRowBuffer) > rowHeight) {
 			const appendNumber = Math.round(appendRowBuffer / rowHeight)
 
+			let start
+			let end
+
+			if (appendNumber > 0) {
+				start = displayRowsRange.end,
+				end = displayRowsRange.end + appendNumber
+			} else {
+				start = displayRowsRange.start + appendNumber
+				end = displayRowsRange.start
+			}
+
 			backend.postMessage({
 				type: EVENT_REQUEST_ROWS,
-				start: lazyLoadStartPos,
-				end: lazyLoadStartPos + appendNumber,
+				start: start,
+				end: end,
 				scrolling: appendRowBuffer > 0 ? 1 : -1
 			})
 
-			lazyLoadStartPos += appendNumber
 			appendRowBuffer -= rowHeight * appendNumber
 		}
 
@@ -207,7 +241,7 @@
 	}}
 >
 	<table bind:this={table}>
-		<div style="height: 200px;"></div>
+		<!-- <div style="height: 200px;"></div> -->
 
 		<tr class="header">
 			{#each range(0, headers.length) as i}

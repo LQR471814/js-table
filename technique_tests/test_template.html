@@ -4,18 +4,19 @@
     <style>
         .container {
             height: 400px;
-            overflow: hidden;
+            width: 200px;
+            overflow: auto;
         }
 
         span {
             display: block;
-            font-size: 48px;
+            font-size: 50px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container" onscroll="alert('scrolled')">
+    <div class="container" id="container">
         <span>test1</span>
         <span>test2</span>
         <span>test3</span>
@@ -32,4 +33,12 @@
         <span>test14</span>
         <span>test15</span>
     </div>
+
+    <script>
+        function $(selector) { //? Bootleg jQuery
+            return document.querySelector(selector)
+        }
+
+        const container = $('#container')
+    </script>
 </body>
