@@ -18,13 +18,27 @@
 	export let data: RowData[] = []
 	export let dimensions: { x: string, y: string } = { x: "100%", y: "100%" }
 
-	//? Constants
+	//? Settings
 
-	/** delMargin specifies how many times the tableRowCapacity can the table have
-		when going over this margin, rows from either the front or back
-		depending on scroll direciton will be removed until it satisfies this
-		limit **/
-	const delMargin = 1.6
+	export const settings: {
+		delMargin: number,
+		wheelUnit: number,
+		rowUnitRatio: number
+	} = {
+		/** delMargin specifies how many times the tableRowCapacity can the table have
+		 * when going over this margin, rows from either the front or back
+		 * depending on scroll direciton will be removed until it satisfies this
+		 * limit **/
+			delMargin: 1.5,
+
+		/** wheelUnit is the amount of deltaY in the WheelEvent interface that would be
+		 * counted as one 'unit' down **/
+			wheelUnit: 100,
+
+		/** rowUnitRatio is the ratio of 'units' inferred from the WheelEvent interface
+		 * to a single row **/
+			rowUnitRatio: 1,
+	}
 
 	//? Variables
 
@@ -34,8 +48,7 @@
 
 	let currentRows: RowData[] = []
 
-	let scrollPosition = 0
-	let appendRowBuffer = 0
+	let appendRowBuffer = 0 //? This is in 'units'
 
 	const displayRowsRange = {
 		start: 0,
@@ -78,7 +91,7 @@
 				(
 					calculatedDimensions.viewportHeight /
 					calculatedDimensions.rowHeight
-				) * 1.1 //? To allow for scrolling room
+				) * settings.delMargin
 			)
 		}
 	}
@@ -143,14 +156,12 @@
 					return
 				}
 
-				//? Cancel out browser auto-scroll
-				appendRowBuffer += calculatedDimensions.rowHeight * msg.scrolling
 				const scrollingUpwards = msg.scrolling < 0 ? true : false
 
 				const tableRowCapacity = calculatedDimensions.tableRowCapacity
-				if (table.children.length - 1 > tableRowCapacity * delMargin) { //? Check row number overflow
+				if (table.children.length - 1 > tableRowCapacity) { //? Check row number overflow
 					const moreBy = Math.round(
-						(table.children.length) - tableRowCapacity * delMargin
+						(table.children.length) - tableRowCapacity
 					)
 
 					if (msg.scrolling > 0) {
@@ -207,14 +218,13 @@
 <div
 	style="--width: {dimensions.x}; --height: {dimensions.y}"
 	bind:this={frame}
-	on:scroll={() => {
-		const scrollOffset = frame.scrollTop - scrollPosition
-		const rowHeight = calculatedDimensions.rowHeight
-
+	on:wheel={(e) => {
+		//? Positive is downwards; Negative is upwards
+		const scrollOffset = e.deltaY / settings.wheelUnit
 		appendRowBuffer += scrollOffset
 
-		if (Math.abs(appendRowBuffer) > rowHeight) {
-			const appendNumber = Math.round(appendRowBuffer / rowHeight)
+		if (Math.abs(appendRowBuffer) >= settings.rowUnitRatio) {
+			const appendNumber = Math.round(appendRowBuffer / settings.rowUnitRatio)
 
 			let start
 			let end
@@ -231,13 +241,11 @@
 				type: EVENT_REQUEST_ROWS,
 				start: start,
 				end: end,
-				scrolling: appendRowBuffer > 0 ? 1 : -1
+				scrolling: appendNumber > 0 ? 1 : -1
 			})
 
-			appendRowBuffer -= rowHeight * appendNumber
+			appendRowBuffer -= appendNumber * settings.rowUnitRatio
 		}
-
-		scrollPosition = frame.scrollTop
 	}}
 >
 	<table bind:this={table}>
@@ -330,6 +338,11 @@
 		width: var(--width);
 
 		overflow: auto;
+		scrollbar-width: none; /* Remove scrollbar from firefox */
+	}
+
+	::-webkit-scrollbar { /* Remove scrollbar from chrome and other webkit browsers */
+		width: 0;
 	}
 
 	table {

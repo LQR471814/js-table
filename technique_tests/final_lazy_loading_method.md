@@ -36,3 +36,11 @@ Ex.
 12 rows but limit is 10
 -2 rows from top / bottom
 ```
+
+Actually, here's another revision
+
+```text
+I found out that mousewheel is a much better event to use since it still fires when you reach the top or bottom, it gives me pixel deltas automatically and I no longer need to use that weird hack to cancel out browser auto-scrolling.
+
+So this is just an appendix to the original final revision
+```
