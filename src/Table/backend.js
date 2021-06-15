@@ -4,7 +4,7 @@ import {
 	EVENT_SORT,
 	EVENT_SEARCH,
 	TableData,
-} from '../types'
+} from './types'
 
 import { createNewSortInstance } from 'fast-sort'
 
@@ -32,10 +32,8 @@ onmessage = (e) => {
 		case EVENT_REQUEST_ROWS:
 			let returnRows
 
-			console.log(msg.end)
-
-			if (currentCachedRows && msg.scrolling) {
-				returnRows = currentCachedRows.splice(msg.start, msg.end)
+			if (currentCachedRows) {
+				returnRows = currentCachedRows.slice(msg.start, msg.end)
 			} else {
 				returnRows = table.fetchRows(msg.start, msg.end)
 			}
@@ -70,7 +68,7 @@ onmessage = (e) => {
 
 			postMessage({
 				type: EVENT_SORT,
-				rows: resultRows.slice(0, msg.rows)
+				rows: resultRows.slice(msg.start, msg.end)
 			})
 
 			break

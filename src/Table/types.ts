@@ -2,6 +2,12 @@ import FlexSearch from "flexsearch"
 
 //? Note: Restart dev server every time a change is made to this file (otherwise source won't update)
 
+export type RowData = Array<CellData>;
+export interface CellData {
+	rowIndex: number,
+	data: string
+}
+
 export class TableData {
 	headers: string[]
 	rows: RowData[]
@@ -79,7 +85,7 @@ interface FRONTEND_REQUEST_ROWS_MSG {
 	type: string
 	start: number
 	end: number
-	scrolling: number //? If defined, backend will use cached sort / search rows (1: append at end, -1: append at top)
+	scrolling: number //? Stores scrolling direction (1: append at end, -1: append at top)
 }
 interface BACKEND_REQUEST_ROWS_MSG {
 	type: string
@@ -90,8 +96,9 @@ interface BACKEND_REQUEST_ROWS_MSG {
 export const EVENT_SORT = 2
 interface FRONTEND_SORT_MSG {
 	type: string
+	start: number
+	end: number
 	col: number
-	rows: number
 	direction: number //? 1: Asc, 2: Desc, 0: None
 }
 interface BACKEND_SORT_MSG {

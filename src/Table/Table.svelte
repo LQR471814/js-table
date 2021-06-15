@@ -8,9 +8,11 @@
 		EVENT_REQUEST_ROWS,
 		EVENT_SORT,
 		EVENT_SEARCH,
-	} from '../types'
+	} from './types'
 
-	import { onMount } from 'svelte';
+	import type { RowData } from './types'
+
+	import { afterUpdate, onMount } from 'svelte';
 	import BackendWorker from 'web-worker:./backend.js'
 
 	//? Props
@@ -46,9 +48,12 @@
 	let table: HTMLTableElement
 	let frame: HTMLDivElement
 
-	let currentRows: RowData[] = []
-
 	let appendRowBuffer = 0 //? This is in 'units'
+	let scrollNext = false //? If true will change scroll to that of scrollPosition next update
+	const scrollPosition = {
+		x: 0,
+		y: 0
+	} //? Store scroll position in case of re-render
 
 	const displayRowsRange = {
 		start: 0,
@@ -109,6 +114,7 @@
 
 	function appendRow(rowData: RowData, top?: boolean) {
 		const row = document.createElement('tr')
+		row.setAttribute('clearable', 'true')
 
 		for (const cellData of rowData) {
 			const cell = document.createElement('td')
@@ -131,13 +137,8 @@
 	}
 
 	function clear() {
-		//? Copy children to avoid array weirdness because this value updates when you remove a child
-		const rootChildren = [...table.children]
-
-		for (const child of rootChildren) {
-			if (child.className !== "header") {
-				child.remove()
-			}
+		for (const child of table.querySelectorAll('tr[clearable="true"]')) {
+			child.remove()
 		}
 	}
 
@@ -147,15 +148,13 @@
 
 		switch (msg.type) {
 			case EVENT_SORT:
-				currentRows = msg.rows
+				clear()
+				scrollNext = true
+
+				appendRows(msg.rows)
 				break
 
 			case EVENT_REQUEST_ROWS:
-				if (!msg.scrolling) {
-					currentRows = msg.rows
-					return
-				}
-
 				const scrollingUpwards = msg.scrolling < 0 ? true : false
 
 				const tableRowCapacity = calculatedDimensions.tableRowCapacity
@@ -204,7 +203,8 @@
 		backend.postMessage({
 			type: EVENT_REQUEST_ROWS,
 			start: 0,
-			end: calculatedDimensions.tableRowCapacity
+			end: calculatedDimensions.tableRowCapacity,
+			scrolling: 1
 		})
 
 		displayRowsRange.end = calculatedDimensions.tableRowCapacity
@@ -222,6 +222,8 @@
 		//? Positive is downwards; Negative is upwards
 		const scrollOffset = e.deltaY / settings.wheelUnit
 		appendRowBuffer += scrollOffset
+
+		console.log(displayRowsRange)
 
 		if (Math.abs(appendRowBuffer) >= settings.rowUnitRatio) {
 			const appendNumber = Math.round(appendRowBuffer / settings.rowUnitRatio)
@@ -246,6 +248,9 @@
 
 			appendRowBuffer -= appendNumber * settings.rowUnitRatio
 		}
+
+		scrollPosition.x = frame.scrollLeft
+		scrollPosition.y = frame.scrollTop
 	}}
 >
 	<table bind:this={table}>
@@ -273,10 +278,12 @@
 
 						backend.postMessage({
 							type: EVENT_SORT,
+							start: displayRowsRange.start,
+							end: displayRowsRange.end,
 							col: i,
-							rows: calculatedDimensions.tableRowCapacity,
 							direction: lastSorted.direction,
 						})
+
 					}
 				}>
 					<span>{headers[i]}</span>
@@ -292,16 +299,10 @@
 						</svg>
 					{/if}
 				</th>
+
+				<td style="display: none"></td> <!-- To preserve td styles -->
 			{/each}
 		</tr>
-
-		{#each currentRows as row}
-			<tr>
-				{#each row as cell}
-					<td>{cell.data}</td>
-				{/each}
-			</tr>
-		{/each}
 	</table>
 </div>
 
