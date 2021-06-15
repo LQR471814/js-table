@@ -12,7 +12,7 @@
 
 	import type { RowData } from './types'
 
-	import { onMount } from 'svelte';
+	import { afterUpdate, onMount } from 'svelte';
 	import BackendWorker from 'web-worker:./backend.js'
 
 	//? Props
@@ -111,9 +111,14 @@
 		}
 	}
 
-	function appendRow(rowData: RowData, top?: boolean) {
+	function appendRow(rowData: RowData, top?: boolean, customAttributes?: Map<string, string>) {
 		const row = document.createElement('tr')
-		row.setAttribute('clearable', 'true')
+
+		if (customAttributes) {
+			customAttributes.forEach((val, key) => {
+				row.setAttribute(key, val)
+			})
+		}
 
 		for (const cellData of rowData) {
 			const cell = document.createElement('td')
@@ -136,7 +141,7 @@
 	}
 
 	function clear() {
-		for (const child of table.querySelectorAll('tr[clearable="true"]')) {
+		for (const child of table.querySelectorAll('tr:not(.header)')) {
 			child.remove()
 		}
 	}
@@ -160,12 +165,12 @@
 						(table.children.length) - tableRowCapacity
 					)
 
-					if (msg.scrolling > 0) {
-						displayRowsRange.start += moreBy
-						removeRows(1, moreBy + 1)
+					if (scrollingUpwards) {
+						displayRowsRange.end -= moreBy //? Remove from end count
+						removeRows(-moreBy) //? Remove num of elements from end
 					} else {
-						displayRowsRange.end -= moreBy
-						removeRows(-moreBy) //? Slice num of elements from end
+						displayRowsRange.start += moreBy //? Add start count
+						removeRows(1, moreBy + 1)
 					}
 				}
 
@@ -175,9 +180,9 @@
 				)
 
 				if (scrollingUpwards) {
-					displayRowsRange.start -= msg.rows.length
+					displayRowsRange.start -= msg.rows.length //? Remove from start count
 				} else {
-					displayRowsRange.end += msg.rows.length
+					displayRowsRange.end += msg.rows.length //? Add to end count
 				}
 
 				break
@@ -204,11 +209,13 @@
 			scrolling: 1
 		})
 
-		displayRowsRange.end = calculatedDimensions.tableRowCapacity
-
 		return () => {
 			backend.terminate()
 		}
+	})
+
+	afterUpdate(() => {
+
 	})
 </script>
 
@@ -219,8 +226,6 @@
 		//? Positive is downwards; Negative is upwards
 		const scrollOffset = e.deltaY / settings.wheelUnit
 		appendRowBuffer += scrollOffset
-
-		console.log(displayRowsRange)
 
 		if (Math.abs(appendRowBuffer) >= settings.rowUnitRatio) {
 			const appendNumber = Math.round(appendRowBuffer / settings.rowUnitRatio)
@@ -295,8 +300,9 @@
 					{/if}
 				</th>
 
-				<td style="display: none"></td> <!-- To preserve td styles -->
 			{/each}
+
+			<td style="display: none"></td> <!-- To preserve td styles -->
 		</tr>
 	</table>
 </div>
