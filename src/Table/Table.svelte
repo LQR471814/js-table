@@ -12,7 +12,7 @@
 
 	import type { RowData } from './types'
 
-	import { afterUpdate, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import BackendWorker from 'web-worker:./backend.js'
 
 	//? Props
@@ -49,7 +49,6 @@
 	let frame: HTMLDivElement
 
 	let appendRowBuffer = 0 //? This is in 'units'
-	let scrollNext = false //? If true will change scroll to that of scrollPosition next update
 	const scrollPosition = {
 		x: 0,
 		y: 0
@@ -149,8 +148,6 @@
 		switch (msg.type) {
 			case EVENT_SORT:
 				clear()
-				scrollNext = true
-
 				appendRows(msg.rows)
 				break
 
@@ -254,8 +251,6 @@
 	}}
 >
 	<table bind:this={table}>
-		<!-- <div style="height: 200px;"></div> -->
-
 		<tr class="header">
 			{#each range(0, headers.length) as i}
 				<th on:click={
