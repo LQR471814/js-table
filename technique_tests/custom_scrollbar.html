@@ -1,0 +1,84 @@
+<head>
+	<title>Scrollbar Test</title>
+
+	<style>
+		.container {
+			height: 400px;
+			width: 10px;
+
+			padding: 5px;
+
+			background-color: gray;
+		}
+
+		.nub {
+			width: 100%;
+			height: 10%;
+
+			position: relative;
+			top: 0;
+
+			background-color: black;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container" id="container">
+		<div class="nub" id="nub"></div>
+	</div>
+
+	<script>
+		const container = document.getElementById('container')
+		const containerBox = container.getBoundingClientRect()
+
+		const containerPaddingTop = parseFloat(window.getComputedStyle(container).paddingTop)
+		const containerPaddingBottom = parseFloat(window.getComputedStyle(container).paddingBottom)
+
+		const nub = document.getElementById('nub')
+
+		const dragging = { current: false } //? To make sure it updates in callbacks
+		const yPosition = { current: 0 }
+
+		function clamp(n, min, max) {
+			if (n < min) {
+				return min
+			} else if (n > max) {
+				return max
+			} else {
+				return n
+			}
+		}
+
+		function moveNub(y) {
+			const rect = nub.getBoundingClientRect()
+			const centerY = Math.round(rect.height / 2) + rect.top
+
+			const deltaY = y - centerY
+			yPosition.current += deltaY
+			yPosition.current = clamp(yPosition.current, 0, containerBox.bottom - containerBox.top - rect.height - containerPaddingBottom - containerPaddingTop)
+
+			nub.style.transform = `translate(0, ${yPosition.current}px)`
+		}
+
+		window.onmousedown = (e) => {
+			if (!(e.x < containerBox.right && e.x > containerBox.left)) {
+				return
+			}
+
+			moveNub(e.y)
+
+			dragging.current = true
+		}
+
+		window.onmouseup = (e) => {
+			dragging.current = false
+		}
+
+		window.onmousemove = (e) => {
+			if (dragging.current) {
+				moveNub(e.y)
+			}
+		}
+	</script>
+</body>

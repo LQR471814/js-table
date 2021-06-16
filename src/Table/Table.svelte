@@ -1,6 +1,7 @@
 <svelte:options tag="js-table" />
 
 <script lang="ts">
+	import './Scrollbar.svelte'
 	import { range } from "../utils"
 
 	import {
@@ -12,7 +13,7 @@
 
 	import type { RowData } from './types'
 
-	import { afterUpdate, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import BackendWorker from 'web-worker:./backend.js'
 
 	//? Props
@@ -22,7 +23,13 @@
 
 	//? Settings
 
-	export const settings: {
+	export let scrollbarStyling = {
+		width: '10px',
+		padding: '5px',
+		position: 'fixed'
+	}
+
+	export let scrollBehaivior: {
 		delMargin: number,
 		wheelUnit: number,
 		rowUnitRatio: number
@@ -49,6 +56,7 @@
 	let frame: HTMLDivElement
 
 	let appendRowBuffer = 0 //? This is in 'units'
+
 	const scrollPosition = {
 		x: 0,
 		y: 0
@@ -57,6 +65,11 @@
 	const displayRowsRange = {
 		start: 0,
 		end: 0,
+	}
+
+	const lastSorted = {
+		value: -1,
+		direction: 0
 	}
 
 	const calculatedDimensions = {
@@ -95,14 +108,9 @@
 				(
 					calculatedDimensions.viewportHeight /
 					calculatedDimensions.rowHeight
-				) * settings.delMargin
+				) * scrollBehaivior.delMargin
 			)
 		}
-	}
-
-	const lastSorted = {
-		value: -1,
-		direction: 0
 	}
 
 	function appendRows(rows: RowData[], top?: boolean) {
@@ -209,26 +217,26 @@
 			scrolling: 1
 		})
 
+		const onresize = () => calculatedDimensions.update()
+		window.addEventListener('resize', onresize)
+
 		return () => {
 			backend.terminate()
+			window.removeEventListener('resize', onresize)
 		}
-	})
-
-	afterUpdate(() => {
-
 	})
 </script>
 
 <div
-	style="--width: {dimensions.x}; --height: {dimensions.y}"
+	style="--width: {dimensions.x}; --height: {dimensions.y}; --scrollPadding: calc({scrollbarStyling.padding} * 2 + {scrollbarStyling.width})"
 	bind:this={frame}
 	on:wheel={(e) => {
 		//? Positive is downwards; Negative is upwards
-		const scrollOffset = e.deltaY / settings.wheelUnit
+		const scrollOffset = e.deltaY / scrollBehaivior.wheelUnit
 		appendRowBuffer += scrollOffset
 
-		if (Math.abs(appendRowBuffer) >= settings.rowUnitRatio) {
-			const appendNumber = Math.round(appendRowBuffer / settings.rowUnitRatio)
+		if (Math.abs(appendRowBuffer) >= scrollBehaivior.rowUnitRatio) {
+			const appendNumber = Math.round(appendRowBuffer / scrollBehaivior.rowUnitRatio)
 
 			let start
 			let end
@@ -248,7 +256,7 @@
 				scrolling: appendNumber > 0 ? 1 : -1
 			})
 
-			appendRowBuffer -= appendNumber * settings.rowUnitRatio
+			appendRowBuffer -= appendNumber * scrollBehaivior.rowUnitRatio
 		}
 
 		scrollPosition.x = frame.scrollLeft
@@ -305,6 +313,8 @@
 			<td style="display: none"></td> <!-- To preserve td styles -->
 		</tr>
 	</table>
+
+	<js-table-scrollbar styling={scrollbarStyling} />
 </div>
 
 <style>
@@ -349,8 +359,9 @@
 
 	table {
 		width: 100%;
-		border-spacing: 0;
+		padding-right: var(--scrollPadding);
 
+		border-spacing: 0;
 		background-color: var(--neutral);
 	}
 
