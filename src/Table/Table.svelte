@@ -24,8 +24,8 @@
 	//? Settings
 
 	export let scrollbarStyling = {
-		width: '10px',
-		padding: '5px',
+		width: '12px',
+		padding: '4px',
 		position: 'fixed'
 	}
 
@@ -55,12 +55,12 @@
 	let table: HTMLTableElement
 	let frame: HTMLDivElement
 
-	let appendRowBuffer = 0 //? This is in 'units'
+	let scrollbarView: number
 
-	const scrollPosition = {
-		x: 0,
-		y: 0
-	} //? Store scroll position in case of re-render
+	let scrollTotal = 0
+	let scrollPosition = 0
+
+	let appendRowBuffer = 0 //? This is in 'units'
 
 	const displayRowsRange = {
 		start: 0,
@@ -72,7 +72,7 @@
 		direction: 0
 	}
 
-	const calculatedDimensions = {
+	let calculatedDimensions = {
 		rowHeight: 0,
 		viewportHeight: 0,
 		tableRowCapacity: 0,
@@ -82,6 +82,8 @@
 			this.rowHeight = this.getRowHeight()
 
 			this.tableRowCapacity = this.getTableRowCapacity()
+
+			calculatedDimensions = calculatedDimensions
 		},
 
 		getRowHeight: () => {
@@ -193,6 +195,8 @@
 					displayRowsRange.end += msg.rows.length //? Add to end count
 				}
 
+				scrollPosition = displayRowsRange.start * calculatedDimensions.rowHeight
+
 				break
 
 		}
@@ -200,6 +204,9 @@
 
 	onMount(() => {
 		calculatedDimensions.update()
+
+		scrollbarView = frame.clientHeight
+		scrollTotal = data.length * calculatedDimensions.rowHeight
 
 		// I have to put this code here cause for some
 		// reason props aren't available until mount
@@ -258,9 +265,6 @@
 
 			appendRowBuffer -= appendNumber * scrollBehaivior.rowUnitRatio
 		}
-
-		scrollPosition.x = frame.scrollLeft
-		scrollPosition.y = frame.scrollTop
 	}}
 >
 	<table bind:this={table}>
@@ -314,7 +318,12 @@
 		</tr>
 	</table>
 
-	<js-table-scrollbar styling={scrollbarStyling} />
+	<js-table-scrollbar
+		styling={scrollbarStyling}
+		viewed={scrollbarView}
+		position={scrollPosition}
+		total={scrollTotal}
+	/>
 </div>
 
 <style>
@@ -333,6 +342,8 @@
 
 		color: var(--lighter);
 		white-space: nowrap;
+
+		user-select: none; /* Deprecated on MDN for some reason, not quite sure why */
 	}
 
 	th:hover, td:hover {
@@ -341,16 +352,14 @@
 		cursor: default;
 	}
 
-	th {
-		user-select: none; /* Deprecated for some reason, not quite sure why */
-	}
-
 	div {
 		height: var(--height);
 		width: var(--width);
 
 		overflow: auto;
 		scrollbar-width: none; /* Remove scrollbar from firefox */
+
+		background-color: var(--neutral);
 	}
 
 	::-webkit-scrollbar { /* Remove scrollbar from chrome and other webkit browsers */
@@ -362,6 +371,7 @@
 		padding-right: var(--scrollPadding);
 
 		border-spacing: 0;
+
 		background-color: var(--neutral);
 	}
 

@@ -1,7 +1,7 @@
 <svelte:options tag="js-table-scrollbar" />
 
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { createEventDispatcher, onMount } from "svelte";
 
 	//? Variables
 	let container: HTMLDivElement
@@ -11,15 +11,30 @@
 	let containerPaddingTop: number
 	let containerPaddingBottom: number
 
-	const dragging = { current: false }
-	const yPosition = { current: 0 }
+	const dispatch = createEventDispatcher()
+
+	const dragging = { current: false } //? { current } to make sure values update throughout all the callbacks
+	const yPosition = { current: 0 } //? This is the position of the center of the scroll nub
 
 	//? Styling Options
 	export let styling = {
-		width: '10px',
-		padding: '5px',
+		width: '12px',
+		padding: '4px',
 		position: 'fixed'
 	}
+
+	export let position: number
+	let prevPosition: number
+
+	$: {
+		if (position !== prevPosition && containerBox) {
+			yPosition.current = (position / total) * containerBox.height
+			prevPosition = position
+		}
+	}
+
+	export let total: number = 1
+	export let viewed: number = 1
 
 	onMount(() => {
 		containerBox = container.getBoundingClientRect()
@@ -57,7 +72,11 @@
 				containerPaddingBottom
 			)
 
-			nub.style.transform = `translate(0, ${yPosition.current}px)`
+			dispatch('scroll', {
+				position: yPosition.current
+			})
+
+			nub.style.top = `${yPosition.current / containerBox.height * 100}%`
 		}
 
 		const onmousedown = (e: MouseEvent) => {
@@ -83,17 +102,27 @@
 		window.addEventListener('mouseup', onmouseup)
 		window.addEventListener('mousemove', onmousemove)
 
-		const containerStyle = window.getComputedStyle(container)
-		console.log(`calc(${containerStyle.paddingLeft} + ${containerStyle.paddingRight} + ${containerStyle.width})`)
+		//? To prevent dragging and totally breaking the scrollbar
+		window.addEventListener('dragstart', (e) => e.preventDefault())
 	})
 </script>
 
 <div
-	class="container"
-	bind:this={container}
-	style="--width: {styling.width}; --padding: {styling.padding}; --position: {styling.position}"
+	class="container" bind:this={container}
+	draggable="false"
+	style="
+		--width: {styling.width};
+		--padding: {styling.padding};
+		--position: {styling.position};
+		--nubHeight: {viewed / total * 100}%;
+	"
 >
-	<div class="nub" bind:this={nub}></div>
+	<div
+		class="nub"
+		style="top: {position / total * 100}%"
+		draggable="false"
+		bind:this={nub}
+	></div>
 </div>
 
 <style>
@@ -103,7 +132,7 @@
 		top: 0;
 		right: 0;
 
-		height: 100vh;
+		height: calc(100vh - var(--padding) * 2);
 
 		width: var(--width);
 		padding: var(--padding);
@@ -113,7 +142,7 @@
 
 	.nub {
 		width: 100%;
-		height: 10%;
+		height: var(--nubHeight);
 
 		position: relative;
 		top: 0;
@@ -121,5 +150,9 @@
 		background-color: var(--light);
 
 		border-radius: 10px;
+	}
+
+	.nub:hover {
+		background-color: var(--lighter);
 	}
 </style>
