@@ -1,7 +1,9 @@
 <svelte:options tag="js-table" />
 
 <script lang="ts">
-	import './Scrollbar.svelte'
+	import 'svelte-custom-scrollbar'
+
+	// import './Scrollbar.svelte'
 	import { range } from "../utils"
 
 	import {
@@ -26,7 +28,8 @@
 	export let scrollbarStyling = {
 		width: '12px',
 		padding: '4px',
-		position: 'fixed'
+		cssPosition: 'fixed',
+		hoverTransition: '0.1s ease-in-out background-color',
 	}
 
 	export let scrollBehaivior: {
@@ -318,11 +321,18 @@
 		</tr>
 	</table>
 
-	<js-table-scrollbar
-		styling={scrollbarStyling}
-		viewed={scrollbarView}
+	<custom-scrollbar
 		position={scrollPosition}
+		viewable={scrollbarView}
 		total={scrollTotal}
+		styling={scrollbarStyling}
+
+		on:scroll={
+			(e) => {
+				console.log(e.detail.position)
+				// scrollPosition = e.detail.position * scrollTotal
+			}
+		}
 	/>
 </div>
 
