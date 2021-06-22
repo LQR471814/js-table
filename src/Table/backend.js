@@ -41,7 +41,8 @@ onmessage = (e) => {
 			postMessage({
 				type: EVENT_REQUEST_ROWS,
 				rows: returnRows,
-				scrolling: msg.scrolling
+				scrolling: msg.scrolling,
+				rerender: msg.rerender
 			}) //? Return all rows if start is equal to end
 
 			break

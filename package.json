@@ -28,6 +28,6 @@
     "fast-sort": "^3.0.2",
     "flexsearch": "^0.6.32",
     "sirv-cli": "^1.0.0",
-    "svelte-custom-scrollbar": "^0.1.1"
+    "svelte-custom-scrollbar": "^0.1.2"
   }
 }

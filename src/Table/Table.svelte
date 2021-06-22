@@ -1,9 +1,5 @@
-<svelte:options tag="js-table" />
-
 <script lang="ts">
-	import 'svelte-custom-scrollbar'
-
-	// import './Scrollbar.svelte'
+	import Scrollbar from 'svelte-custom-scrollbar'
 	import { range } from "../utils"
 
 	import {
@@ -20,14 +16,14 @@
 
 	//? Props
 	export let headers: string[] = []
-	export let data: RowData[] = []
+	export let data: string[][] = []
 	export let dimensions: { x: string, y: string } = { x: "100%", y: "100%" }
 
 	//? Settings
 
 	export let scrollbarStyling = {
-		width: '12px',
-		padding: '4px',
+		width: '13px',
+		padding: '4.5px',
 		cssPosition: 'fixed',
 		hoverTransition: '0.1s ease-in-out background-color',
 	}
@@ -170,6 +166,12 @@
 				break
 
 			case EVENT_REQUEST_ROWS:
+				if (msg.rerender) {
+					clear()
+					appendRows(msg.rows, false)
+					return
+				}
+
 				const scrollingUpwards = msg.scrolling < 0 ? true : false
 
 				const tableRowCapacity = calculatedDimensions.tableRowCapacity
@@ -210,6 +212,7 @@
 
 		scrollbarView = frame.clientHeight
 		scrollTotal = data.length * calculatedDimensions.rowHeight
+		console.log(scrollbarView, scrollTotal)
 
 		// I have to put this code here cause for some
 		// reason props aren't available until mount
@@ -238,6 +241,7 @@
 </script>
 
 <div
+	class="frame"
 	style="--width: {dimensions.x}; --height: {dimensions.y}; --scrollPadding: calc({scrollbarStyling.padding} * 2 + {scrollbarStyling.width})"
 	bind:this={frame}
 	on:wheel={(e) => {
@@ -270,7 +274,7 @@
 		}
 	}}
 >
-	<table bind:this={table}>
+	<table class="table" bind:this={table}>
 		<tr class="header">
 			{#each range(0, headers.length) as i}
 				<th on:click={
@@ -314,23 +318,42 @@
 						</svg>
 					{/if}
 				</th>
-
 			{/each}
 
 			<td style="display: none"></td> <!-- To preserve td styles -->
 		</tr>
 	</table>
 
-	<custom-scrollbar
+	<Scrollbar
 		position={scrollPosition}
 		viewable={scrollbarView}
 		total={scrollTotal}
 		styling={scrollbarStyling}
+		containerStyle="top: 0; right: 0;"
+
+		colorScheme={{
+			nubClicked: "#8E8E8E",
+			nubHovered: "#7E7E7E",
+			nub: "#6E6E6E",
+			background: "#555555",
+		}}
 
 		on:scroll={
-			(e) => {
-				console.log(e.detail.position)
-				// scrollPosition = e.detail.position * scrollTotal
+			(e) => { //? On Scrollbar Scroll
+				scrollPosition = scrollTotal * e.detail.position
+
+				const newStart = Math.round(scrollPosition / calculatedDimensions.rowHeight)
+
+				displayRowsRange.end = newStart + (displayRowsRange.end - displayRowsRange.start)
+				displayRowsRange.start = newStart
+
+				backend.postMessage({
+					type: EVENT_REQUEST_ROWS,
+					start: displayRowsRange.start,
+					end: displayRowsRange.end,
+					scrolling: 1,
+					rerender: true
+				})
 			}
 		}
 	/>
@@ -347,7 +370,7 @@
 		--darker: rgb(23, 23, 23);
 	}
 
-	th, td {
+	:global(th), :global(td) {
 		padding: 10px;
 
 		color: var(--lighter);
@@ -356,12 +379,13 @@
 		user-select: none; /* Deprecated on MDN for some reason, not quite sure why */
 	}
 
-	th:hover, td:hover {
+	:global(th:hover), :global(td:hover) {
 		color: var(--even-lighter);
 
 		cursor: default;
 	}
 
+	/* Frame */
 	div {
 		height: var(--height);
 		width: var(--width);
@@ -376,6 +400,7 @@
 		width: 0;
 	}
 
+	/* Table */
 	table {
 		width: 100%;
 		padding-right: var(--scrollPadding);
@@ -385,6 +410,14 @@
 		background-color: var(--neutral);
 	}
 
+	/* Headers */
+	.header {
+		background-color: var(--light);
+
+		position: sticky;
+		top: 0;
+	}
+
 	svg {
 		fill: var(--lighter);
 
@@ -392,12 +425,5 @@
 		height: 12px;
 
 		margin-left: 12px;
-	}
-
-	.header {
-		background-color: var(--light);
-
-		position: sticky;
-		top: 0;
 	}
 </style>

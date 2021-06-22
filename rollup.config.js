@@ -11,6 +11,7 @@ import css from 'rollup-plugin-css-only';
 import webWorkerLoader from 'rollup-plugin-web-worker-loader'
 
 const production = !process.env.ROLLUP_WATCH;
+const fs = require('fs')
 
 function serve() {
 	let server;
@@ -48,7 +49,6 @@ export default {
 				sourceMap: !production
 			}),
 			compilerOptions: {
-				customElement: true,
 				// enable run-time checks when not in production
 				dev: !production
 			}
@@ -56,7 +56,10 @@ export default {
 		// we'll extract any component CSS out into
 		// a separate file - better for performance
 		css({
-			output: 'bundle.css'
+			output: function (styles, styleNodes) {
+				console.log('Writing bundled CSS')
+				fs.writeFileSync('public/build/bundle.css', styles)
+			}
 		}),
 
 		// If you have external dependencies installed from

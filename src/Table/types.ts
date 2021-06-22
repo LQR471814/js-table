@@ -86,11 +86,13 @@ interface FRONTEND_REQUEST_ROWS_MSG {
 	start: number
 	end: number
 	scrolling: number //? Stores scrolling direction (1: append at end, -1: append at top)
+	rerender?: boolean //? Indicates whether or not to clear and re-append rows after recving rows
 }
 interface BACKEND_REQUEST_ROWS_MSG {
 	type: string
 	rows: RowData[]
 	scrolling: number //? Indicates if request was a scrolling request (1: append at end, -1: append at top)
+	rerender?: boolean //? Indicates whether or not to clear and re-append rows after recving rows
 }
 
 export const EVENT_SORT = 2

@@ -1,7 +1,5 @@
-<svelte:options tag="js-table-demo" />
-
 <script lang="ts">
-	import './Table/Table.svelte'
+	import Table from './Table/Table.svelte'
 
 	function generateTableHeaders(columns: number) {
 		const headers = []
@@ -26,14 +24,12 @@
 
 		return data
 	}
-
-
 </script>
 
 <main>
-	<js-table
-		headers="{generateTableHeaders(20)}"
-		data="{generateTableData(1000, 20)}"
+	<Table
+		headers={generateTableHeaders(20)}
+		data={generateTableData(1000, 20)}
 	/>
 </main>
 
