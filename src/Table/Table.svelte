@@ -442,6 +442,7 @@
 	}
 
 	th > div {
+		min-width: min-content;
 		resize: horizontal;
 		overflow: auto;
 		padding: 0px 8px 0px 8px;
