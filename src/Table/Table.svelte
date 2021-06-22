@@ -61,6 +61,10 @@
 
 	let appendRowBuffer = 0 //? This is in 'units'
 
+	const heldKeys = {
+		shift: false
+	}
+
 	const displayRowsRange = {
 		start: 0,
 		end: 0,
@@ -230,8 +234,27 @@
 			scrolling: 1
 		})
 
+		const onkeydown = (e: KeyboardEvent) => {
+			switch (e.key) {
+				case "Shift":
+					heldKeys.shift = true
+					break
+			}
+		}
+
+		const onkeyup = (e: KeyboardEvent) => {
+			switch (e.key) {
+				case "Shift":
+					heldKeys.shift = false
+					break
+			}
+		}
+
 		const onresize = () => calculatedDimensions.update()
+
 		window.addEventListener('resize', onresize)
+		window.addEventListener('keydown', onkeydown)
+		window.addEventListener('keyup', onkeyup)
 
 		return () => {
 			backend.terminate()
@@ -245,6 +268,10 @@
 	style="--width: {dimensions.x}; --height: {dimensions.y}; --scrollPadding: calc({scrollbarStyling.padding} * 2 + {scrollbarStyling.width})"
 	bind:this={frame}
 	on:wheel={(e) => {
+		if (heldKeys.shift === true) {
+			return
+		}
+
 		//? Positive is downwards; Negative is upwards
 		const scrollOffset = e.deltaY / scrollBehaivior.wheelUnit
 		appendRowBuffer += scrollOffset
@@ -277,35 +304,39 @@
 	<table class="table" bind:this={table}>
 		<tr class="header">
 			{#each range(0, headers.length) as i}
-				<th on:click={
-					() => { //? OnSort
+				<th>
+					<div>
+						<span on:click={
+							() => { //? OnSort
 
-						//? Sort the other direction if repeating sort on same column
-						//? Reset sorting if direction is descending
+								//? Sort the other direction if repeating sort on same column
+								//? Reset sorting if direction is descending
 
-						if (lastSorted.value === i) {
-							lastSorted.direction += 1
+								if (lastSorted.value === i) {
+									lastSorted.direction += 1
 
-							if (lastSorted.direction > 2) {
-								lastSorted.direction = 0
+									if (lastSorted.direction > 2) {
+										lastSorted.direction = 0
+									}
+								} else { //? So ascending sort is still default
+									lastSorted.direction = 1
+								}
+
+								lastSorted.value = i
+
+								backend.postMessage({
+									type: EVENT_SORT,
+									start: displayRowsRange.start,
+									end: displayRowsRange.end,
+									col: i,
+									direction: lastSorted.direction,
+								})
+
 							}
-						} else { //? So ascending sort is still default
-							lastSorted.direction = 1
-						}
-
-						lastSorted.value = i
-
-						backend.postMessage({
-							type: EVENT_SORT,
-							start: displayRowsRange.start,
-							end: displayRowsRange.end,
-							col: i,
-							direction: lastSorted.direction,
-						})
-
-					}
-				}>
-					<span>{headers[i]}</span>
+						}>
+							{headers[i]}
+						</span>
+					</div>
 					{#if lastSorted.value === i}
 						<svg
 							style={ (lastSorted.direction === 1) ? 'transform: rotate(-90deg)'
@@ -379,14 +410,14 @@
 		user-select: none; /* Deprecated on MDN for some reason, not quite sure why */
 	}
 
-	:global(th:hover), :global(td:hover) {
+	span:hover {
 		color: var(--even-lighter);
 
 		cursor: default;
 	}
 
 	/* Frame */
-	div {
+	.frame {
 		height: var(--height);
 		width: var(--width);
 
@@ -408,6 +439,12 @@
 		border-spacing: 0;
 
 		background-color: var(--neutral);
+	}
+
+	th > div {
+		resize: horizontal;
+		overflow: auto;
+		padding: 0px 8px 0px 8px;
 	}
 
 	/* Headers */
