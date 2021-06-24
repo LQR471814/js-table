@@ -30,9 +30,10 @@
 	<Table
 		headers={generateTableHeaders(20)}
 		data={generateTableData(1000, 20)}
+
 		dimensions={{
-			x: "100vw",
-			y: "100vh"
+			x: "50vw",
+			y: "50vh"
 		}}
 	/>
 </main>

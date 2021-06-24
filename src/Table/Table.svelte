@@ -1,13 +1,3 @@
-<!-- Source Sans Pro -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=true>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@600&display=swap" rel="stylesheet">
-
-<!-- Robot Mono -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=true>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
-
 <script lang="ts">
 	import Scrollbar from 'svelte-custom-scrollbar'
 	import { range } from "../utils"
@@ -24,6 +14,34 @@
 	import { onMount } from 'svelte';
 	import BackendWorker from 'web-worker:./backend.js'
 
+	type DefaultableObject = {[key: string]: any}
+
+	//? Replaces each attribute in an obj specified by the
+	//? "keys" array with the value passed to the function
+	//? This is not a pure function
+	function replaceObjKeysWith(obj: DefaultableObject, keys: string[], val: any) {
+		for (const attr of keys) {
+			obj[attr] = val
+		}
+	}
+
+	//? Since I couldn't find a built-in for this I made one myself
+	//? This goes through all the keys in the defaults object and checks
+	//? if they exist in the target obj, if they don't or if their value is
+	//? undefined, then it will create / replace that attribute's value with
+	//? the one in the default object
+	function setDefaultsByUndefined(obj: DefaultableObject, defaults: DefaultableObject) {
+		const result = {...obj}
+
+		for (const attr of Object.keys(defaults)) {
+			if (result[attr] === undefined) {
+				result[attr] = defaults[attr]
+			}
+		}
+
+		return result
+	}
+
 	//? Props
 
 	export let headers: string[] = []
@@ -32,17 +50,16 @@
 
 	//? Settings
 
-	export let scrollbarStyling = {
+	export let scrollbarStyling = {}
+	const defaultScrollbarStyling = {
 		width: '22px',
 		padding: '4.5px',
 		hoverTransition: '0.1s ease-in-out background-color',
 	}
+	let renderedScrollbarStyling: any = {}
 
-	export let scrollBehaivior: {
-		delMargin: number,
-		wheelUnit: number,
-		rowUnitRatio: number
-	} = {
+	export let scrollBehaivior = {}
+	const defaultScrollBehaivior = {
 		/** delMargin specifies how many times the tableRowCapacity can the table have
 		 * when going over this margin, rows from either the front or back
 		 * depending on scroll direciton will be removed until it satisfies this
@@ -56,6 +73,24 @@
 		/** rowUnitRatio is the ratio of 'units' inferred from the WheelEvent interface
 		 * to a single row **/
 			rowUnitRatio: 1,
+	}
+	let renderedScrollBehaivior: any = {}
+
+	export let styling = {}
+	const defaultStyling = {
+		headerFont: "Source Sans Pro",
+		bodyFont: "Roboto Mono"
+	}
+	let renderedStyling: any = {}
+
+	$: {
+		renderedScrollbarStyling = setDefaultsByUndefined(scrollbarStyling, defaultScrollbarStyling)
+		renderedScrollBehaivior = setDefaultsByUndefined(scrollBehaivior, defaultScrollBehaivior)
+		renderedStyling = setDefaultsByUndefined(styling, defaultStyling)
+
+		console.log(renderedScrollbarStyling)
+		console.log(renderedScrollBehaivior)
+		console.log(renderedStyling)
 	}
 
 	//? Variables
@@ -123,7 +158,7 @@
 				(
 					calculatedDimensions.viewportHeight /
 					calculatedDimensions.rowHeight
-				) * scrollBehaivior.delMargin
+				) * renderedScrollBehaivior.delMargin
 			)
 		}
 	}
@@ -222,22 +257,15 @@
 	}
 
 	onMount(() => {
-		const frameDimensions = tableFrame.getBoundingClientRect()
+		// I have to put this code here cause for some
+		// reason props aren't available until mount
 
-		// scrollbarAuxilaryStyling = `
-		// position: fixed;
-		// left: ${frameDimensions.right}px;
-		// top: ${frameDimensions.top}px;
-		// height: calc(${frameDimensions.height}px - 2 * ${scrollbarStyling.padding});
-		// `
+		const frameDimensions = tableFrame.getBoundingClientRect()
 
 		calculatedDimensions.update()
 
 		scrollbarView = frameDimensions.height
 		scrollTotal = data.length * calculatedDimensions.rowHeight
-
-		// I have to put this code here cause for some
-		// reason props aren't available until mount
 
 		backend.postMessage({
 			type: CONTEXT_MSG_TYPE,
@@ -281,9 +309,31 @@
 	})
 </script>
 
+{#if
+	renderedStyling.headerFont === defaultStyling.headerFont
+	&& renderedStyling.bodyFont === defaultStyling.bodyFont
+}
+	<!-- Source Sans Pro -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=true>
+	<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@600&display=swap" rel="stylesheet">
+
+	<!-- Roboto Mono -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=true>
+	<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+{/if}
+
 <div
-	style="--width: {dimensions.x}; --height: {dimensions.y}; --scrollPadding: calc({scrollbarStyling.padding} * 2 + {scrollbarStyling.width})"
-	class="container">
+	style="
+		--width: {dimensions.x};
+		--height: {dimensions.y};
+		--headerFont: {renderedStyling.headerFont};
+		--bodyFont: {renderedStyling.bodyFont};
+	"
+	class="container"
+>
+
 	<div
 		class="tableFrame"
 		bind:this={tableFrame}
@@ -293,11 +343,11 @@
 			}
 
 			//? Positive is downwards; Negative is upwards
-			const scrollOffset = e.deltaY / scrollBehaivior.wheelUnit
+			const scrollOffset = e.deltaY / renderedScrollBehaivior.wheelUnit
 			appendRowBuffer += scrollOffset
 
-			if (Math.abs(appendRowBuffer) >= scrollBehaivior.rowUnitRatio) {
-				const appendNumber = Math.round(appendRowBuffer / scrollBehaivior.rowUnitRatio)
+			if (Math.abs(appendRowBuffer) >= renderedScrollBehaivior.rowUnitRatio) {
+				const appendNumber = Math.round(appendRowBuffer / renderedScrollBehaivior.rowUnitRatio)
 
 				let start
 				let end
@@ -317,7 +367,7 @@
 					scrolling: appendNumber > 0 ? 1 : -1
 				})
 
-				appendRowBuffer -= appendNumber * scrollBehaivior.rowUnitRatio
+				appendRowBuffer -= appendNumber * renderedScrollBehaivior.rowUnitRatio
 			}
 		}}
 	>
@@ -377,13 +427,11 @@
 
 	</div>
 
-	<!-- containerStyle={scrollbarAuxilaryStyling} -->
-
 	<Scrollbar
 		position={scrollPosition}
 		viewable={scrollbarView}
 		total={scrollTotal}
-		styling={scrollbarStyling}
+		styling={renderedScrollbarStyling}
 
 		colorScheme={{
 			nubClicked: "#8E8E8E",
@@ -435,7 +483,7 @@
 	}
 
 	:global(td) {
-		font-family: 'Roboto Mono', monospace;
+		font-family: var(--bodyFont), monospace;
 		font-size: 14px;
 	}
 
@@ -449,7 +497,7 @@
 	.container {
 		display: flex;
 
-		font-family: 'Source Sans Pro', sans-serif;
+		font-family: var(--headerFont), sans-serif;
 		font-size: 17px;
 
 		height: var(--height);
