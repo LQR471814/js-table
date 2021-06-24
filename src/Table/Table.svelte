@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
 
 <script lang="ts">
-	import Scrollbar from './Scrollbar.svelte'
+	import Scrollbar from 'svelte-custom-scrollbar'
 	import { range } from "../utils"
 
 	import {
@@ -33,11 +33,8 @@
 	//? Settings
 
 	export let scrollbarStyling = {
-		width: '13px',
+		width: '22px',
 		padding: '4.5px',
-		cssPosition: 'absolute',
-		top: '0',
-		right: '0',
 		hoverTransition: '0.1s ease-in-out background-color',
 	}
 
@@ -439,7 +436,7 @@
 
 	:global(td) {
 		font-family: 'Roboto Mono', monospace;
-		font-size: 15px;
+		font-size: 14px;
 	}
 
 	span:hover {
@@ -450,6 +447,8 @@
 
 	/* Frame */
 	.container {
+		display: flex;
+
 		font-family: 'Source Sans Pro', sans-serif;
 		font-size: 17px;
 
@@ -476,7 +475,6 @@
 	/* Table */
 	table {
 		width: 100%;
-		padding-right: var(--scrollPadding);
 
 		border-spacing: 0;
 
