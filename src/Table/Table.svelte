@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Scrollbar from 'svelte-custom-scrollbar'
+	import Scrollbar from './Scrollbar.svelte'
 	import { range } from "../utils"
 
 	import {
@@ -15,6 +15,7 @@
 	import BackendWorker from 'web-worker:./backend.js'
 
 	//? Props
+
 	export let headers: string[] = []
 	export let data: string[][] = []
 	export let dimensions: { x: string, y: string } = { x: "100%", y: "100%" }
@@ -24,7 +25,9 @@
 	export let scrollbarStyling = {
 		width: '13px',
 		padding: '4.5px',
-		cssPosition: 'fixed',
+		cssPosition: 'absolute',
+		top: '0',
+		right: '0',
 		hoverTransition: '0.1s ease-in-out background-color',
 	}
 
@@ -52,7 +55,7 @@
 
 	let backend: Worker
 	let table: HTMLTableElement
-	let frame: HTMLDivElement
+	let tableFrame: HTMLDivElement
 
 	let scrollbarView: number
 
@@ -105,7 +108,7 @@
 		},
 
 		getFrameHeight: () => {
-			return frame.getBoundingClientRect().height
+			return tableFrame.getBoundingClientRect().height
 		},
 
 		getTableRowCapacity: () => {
@@ -212,11 +215,19 @@
 	}
 
 	onMount(() => {
+		const frameDimensions = tableFrame.getBoundingClientRect()
+
+		// scrollbarAuxilaryStyling = `
+		// position: fixed;
+		// left: ${frameDimensions.right}px;
+		// top: ${frameDimensions.top}px;
+		// height: calc(${frameDimensions.height}px - 2 * ${scrollbarStyling.padding});
+		// `
+
 		calculatedDimensions.update()
 
-		scrollbarView = frame.clientHeight
+		scrollbarView = frameDimensions.height
 		scrollTotal = data.length * calculatedDimensions.rowHeight
-		console.log(scrollbarView, scrollTotal)
 
 		// I have to put this code here cause for some
 		// reason props aren't available until mount
@@ -264,103 +275,108 @@
 </script>
 
 <div
-	class="frame"
 	style="--width: {dimensions.x}; --height: {dimensions.y}; --scrollPadding: calc({scrollbarStyling.padding} * 2 + {scrollbarStyling.width})"
-	bind:this={frame}
-	on:wheel={(e) => {
-		if (heldKeys.shift === true) {
-			return
-		}
-
-		//? Positive is downwards; Negative is upwards
-		const scrollOffset = e.deltaY / scrollBehaivior.wheelUnit
-		appendRowBuffer += scrollOffset
-
-		if (Math.abs(appendRowBuffer) >= scrollBehaivior.rowUnitRatio) {
-			const appendNumber = Math.round(appendRowBuffer / scrollBehaivior.rowUnitRatio)
-
-			let start
-			let end
-
-			if (appendNumber > 0) {
-				start = displayRowsRange.end,
-				end = displayRowsRange.end + appendNumber
-			} else {
-				start = displayRowsRange.start + appendNumber
-				end = displayRowsRange.start
+	class="container">
+	<div
+		class="tableFrame"
+		bind:this={tableFrame}
+		on:wheel={(e) => {
+			if (heldKeys.shift === true) {
+				return
 			}
 
-			backend.postMessage({
-				type: EVENT_REQUEST_ROWS,
-				start: start,
-				end: end,
-				scrolling: appendNumber > 0 ? 1 : -1
-			})
+			//? Positive is downwards; Negative is upwards
+			const scrollOffset = e.deltaY / scrollBehaivior.wheelUnit
+			appendRowBuffer += scrollOffset
 
-			appendRowBuffer -= appendNumber * scrollBehaivior.rowUnitRatio
-		}
-	}}
->
-	<table class="table" bind:this={table}>
-		<tr class="header">
-			{#each range(0, headers.length) as i}
-				<th>
-					<div>
-						<span on:click={
-							() => { //? OnSort
+			if (Math.abs(appendRowBuffer) >= scrollBehaivior.rowUnitRatio) {
+				const appendNumber = Math.round(appendRowBuffer / scrollBehaivior.rowUnitRatio)
 
-								//? Sort the other direction if repeating sort on same column
-								//? Reset sorting if direction is descending
+				let start
+				let end
 
-								if (lastSorted.value === i) {
-									lastSorted.direction += 1
+				if (appendNumber > 0) {
+					start = displayRowsRange.end,
+					end = displayRowsRange.end + appendNumber
+				} else {
+					start = displayRowsRange.start + appendNumber
+					end = displayRowsRange.start
+				}
 
-									if (lastSorted.direction > 2) {
-										lastSorted.direction = 0
+				backend.postMessage({
+					type: EVENT_REQUEST_ROWS,
+					start: start,
+					end: end,
+					scrolling: appendNumber > 0 ? 1 : -1
+				})
+
+				appendRowBuffer -= appendNumber * scrollBehaivior.rowUnitRatio
+			}
+		}}
+	>
+		<table class="table" bind:this={table}>
+			<tr class="header">
+				{#each range(0, headers.length) as i}
+					<th>
+						<div>
+							<span on:click={
+								() => { //? OnSort
+
+									//? Sort the other direction if repeating sort on same column
+									//? Reset sorting if direction is descending
+
+									if (lastSorted.value === i) {
+										lastSorted.direction += 1
+
+										if (lastSorted.direction > 2) {
+											lastSorted.direction = 0
+										}
+									} else { //? So ascending sort is still default
+										lastSorted.direction = 1
 									}
-								} else { //? So ascending sort is still default
-									lastSorted.direction = 1
+
+									lastSorted.value = i
+
+									backend.postMessage({
+										type: EVENT_SORT,
+										start: displayRowsRange.start,
+										end: displayRowsRange.end,
+										col: i,
+										direction: lastSorted.direction,
+									})
+
 								}
+							}>
+								{headers[i]}
+							</span>
+						</div>
+						{#if lastSorted.value === i}
+							<svg
+								style={ (lastSorted.direction === 1) ? 'transform: rotate(-90deg)'
+										: (lastSorted.direction === 2) ? 'transform: rotate(90deg)'
+										: 'display: none' }
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="6 0 12 24"
+							>
+								<path d="M6 0l12 12-12 12z"></path>
+							</svg>
+						{/if}
+					</th>
+				{/each}
 
-								lastSorted.value = i
+				<td style="display: none"></td> <!-- To preserve td styles -->
+			</tr>
+		</table>
 
-								backend.postMessage({
-									type: EVENT_SORT,
-									start: displayRowsRange.start,
-									end: displayRowsRange.end,
-									col: i,
-									direction: lastSorted.direction,
-								})
+	</div>
 
-							}
-						}>
-							{headers[i]}
-						</span>
-					</div>
-					{#if lastSorted.value === i}
-						<svg
-							style={ (lastSorted.direction === 1) ? 'transform: rotate(-90deg)'
-									: (lastSorted.direction === 2) ? 'transform: rotate(90deg)'
-									: 'display: none' }
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="6 0 12 24"
-						>
-							<path d="M6 0l12 12-12 12z"></path>
-						</svg>
-					{/if}
-				</th>
-			{/each}
-
-			<td style="display: none"></td> <!-- To preserve td styles -->
-		</tr>
-	</table>
+	<!-- containerStyle={scrollbarAuxilaryStyling} -->
 
 	<Scrollbar
 		position={scrollPosition}
 		viewable={scrollbarView}
 		total={scrollTotal}
 		styling={scrollbarStyling}
-		containerStyle="top: 0; right: 0;"
 
 		colorScheme={{
 			nubClicked: "#8E8E8E",
@@ -390,6 +406,7 @@
 	/>
 </div>
 
+
 <style>
 	:root {
 		--even-lighter: rgb(188, 188, 188);
@@ -417,9 +434,16 @@
 	}
 
 	/* Frame */
-	.frame {
+	.container {
 		height: var(--height);
 		width: var(--width);
+
+		position: relative;
+	}
+
+	.tableFrame {
+		height: 100%;
+		width: 100%;
 
 		overflow: auto;
 		scrollbar-width: none; /* Remove scrollbar from firefox */

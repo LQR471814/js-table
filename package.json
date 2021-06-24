@@ -1,6 +1,6 @@
 {
-  "name": "svelte-app",
-  "version": "1.0.0",
+  "name": "jstable",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "build": "rollup -c",
@@ -22,12 +22,12 @@
     "svelte": "^3.0.0",
     "svelte-preprocess": "^4.0.0",
     "tslib": "^2.0.0",
-    "typescript": "^4.0.0"
+    "typescript": "^4.0.0",
+    "sirv-cli": "^1.0.0"
   },
   "dependencies": {
     "fast-sort": "^3.0.2",
     "flexsearch": "^0.6.32",
-    "sirv-cli": "^1.0.0",
     "svelte-custom-scrollbar": "^0.1.2"
   }
 }

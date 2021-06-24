@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Absolute Position</title>
+
+		<style>
+			p {
+				font-size: 20px;
+				max-width: 50%;
+			}
+
+			.frame {
+				position: relative;
+
+				background-color: black;
+
+				height: 50vh;
+				width: 50vw;
+			}
+
+			.child {
+				height: 100%;
+				width: 10px;
+
+				position: absolute;
+				right: 0;
+
+				background-color: gray;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="frame">
+			<div class="child"></div>
+
+		</div>
+
+		<p>
+			The takeaway from this test is that the parent needs to have
+			<code>position: relative</code> in order for the child to align
+			properly because position: absolute takes the nearest ancestor with
+			a "positionable" property (an ancestor that is affect by <code>top</code> or others)
+
+		</p>
+
+		<p>
+			Although it turns out this doesn't matter in the case of a scrollbar because of numerous problems including scrolling the scrollbar itself.
+			So I'm just gonna resort to javascript...
+		</p>
+	</body>
+</html>
