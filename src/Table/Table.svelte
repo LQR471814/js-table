@@ -1,3 +1,13 @@
+<!-- Source Sans Pro -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=true>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@600&display=swap" rel="stylesheet">
+
+<!-- Robot Mono -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=true>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+
 <script lang="ts">
 	import Scrollbar from './Scrollbar.svelte'
 	import { range } from "../utils"
@@ -427,6 +437,11 @@
 		user-select: none; /* Deprecated on MDN for some reason, not quite sure why */
 	}
 
+	:global(td) {
+		font-family: 'Roboto Mono', monospace;
+		font-size: 15px;
+	}
+
 	span:hover {
 		color: var(--even-lighter);
 
@@ -435,6 +450,9 @@
 
 	/* Frame */
 	.container {
+		font-family: 'Source Sans Pro', sans-serif;
+		font-size: 17px;
+
 		height: var(--height);
 		width: var(--width);
 
