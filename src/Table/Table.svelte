@@ -1,4 +1,5 @@
 <script lang="ts">
+	import addResizeListener from 'add-resize-listener'
 	import Scrollbar from 'svelte-custom-scrollbar'
 	import { range } from "../utils"
 
@@ -15,15 +16,6 @@
 	import BackendWorker from 'web-worker:./backend.js'
 
 	type DefaultableObject = {[key: string]: any}
-
-	//? Replaces each attribute in an obj specified by the
-	//? "keys" array with the value passed to the function
-	//? This is not a pure function
-	function replaceObjKeysWith(obj: DefaultableObject, keys: string[], val: any) {
-		for (const attr of keys) {
-			obj[attr] = val
-		}
-	}
 
 	//? Since I couldn't find a built-in for this I made one myself
 	//? This goes through all the keys in the defaults object and checks
@@ -79,7 +71,8 @@
 	export let styling = {}
 	const defaultStyling = {
 		headerFont: "Source Sans Pro",
-		bodyFont: "Roboto Mono"
+		bodyFont: "Roboto Mono",
+		resize: "none"
 	}
 	let renderedStyling: any = {}
 
@@ -87,10 +80,6 @@
 		renderedScrollbarStyling = setDefaultsByUndefined(scrollbarStyling, defaultScrollbarStyling)
 		renderedScrollBehaivior = setDefaultsByUndefined(scrollBehaivior, defaultScrollBehaivior)
 		renderedStyling = setDefaultsByUndefined(styling, defaultStyling)
-
-		console.log(renderedScrollbarStyling)
-		console.log(renderedScrollBehaivior)
-		console.log(renderedStyling)
 	}
 
 	//? Variables
@@ -98,6 +87,7 @@
 	let backend: Worker
 	let table: HTMLTableElement
 	let tableFrame: HTMLDivElement
+	let container: HTMLDivElement
 
 	let scrollbarView: number
 
@@ -161,6 +151,25 @@
 				) * renderedScrollBehaivior.delMargin
 			)
 		}
+	}
+
+	function updateAll() {
+		const frameDimensions = tableFrame.getBoundingClientRect()
+
+		calculatedDimensions.update()
+
+		scrollbarView = frameDimensions.height
+		scrollTotal = data.length * calculatedDimensions.rowHeight
+
+		displayRowsRange.end = displayRowsRange.start + calculatedDimensions.tableRowCapacity
+
+		backend.postMessage({
+			type: EVENT_REQUEST_ROWS,
+			start: displayRowsRange.start,
+			end: displayRowsRange.end,
+			scrolling: 1,
+			rerender: true
+		})
 	}
 
 	function appendRows(rows: RowData[], top?: boolean) {
@@ -260,24 +269,16 @@
 		// I have to put this code here cause for some
 		// reason props aren't available until mount
 
-		const frameDimensions = tableFrame.getBoundingClientRect()
-
-		calculatedDimensions.update()
-
-		scrollbarView = frameDimensions.height
-		scrollTotal = data.length * calculatedDimensions.rowHeight
-
 		backend.postMessage({
 			type: CONTEXT_MSG_TYPE,
 			headers: headers,
 			data: data
 		})
 
-		backend.postMessage({
-			type: EVENT_REQUEST_ROWS,
-			start: 0,
-			end: calculatedDimensions.tableRowCapacity,
-			scrolling: 1
+		updateAll()
+
+		const removeResizeListener = addResizeListener(container, () => {
+			updateAll()
 		})
 
 		const onkeydown = (e: KeyboardEvent) => {
@@ -305,6 +306,7 @@
 		return () => {
 			backend.terminate()
 			window.removeEventListener('resize', onresize)
+			removeResizeListener()
 		}
 	})
 </script>
@@ -328,10 +330,12 @@
 	style="
 		--width: {dimensions.x};
 		--height: {dimensions.y};
+		--resize: {renderedStyling.resize};
 		--headerFont: {renderedStyling.headerFont};
 		--bodyFont: {renderedStyling.bodyFont};
 	"
 	class="container"
+	bind:this={container}
 >
 
 	<div
@@ -432,6 +436,7 @@
 		viewable={scrollbarView}
 		total={scrollTotal}
 		styling={renderedScrollbarStyling}
+		containerStyle='height: 99%'
 
 		colorScheme={{
 			nubClicked: "#8E8E8E",
@@ -503,7 +508,12 @@
 		height: var(--height);
 		width: var(--width);
 
+		resize: var(--resize);
+		overflow: auto;
+
 		position: relative;
+
+		background-color: var(--neutral);
 	}
 
 	.tableFrame {
@@ -512,8 +522,6 @@
 
 		overflow: auto;
 		scrollbar-width: none; /* Remove scrollbar from firefox */
-
-		background-color: var(--neutral);
 	}
 
 	::-webkit-scrollbar { /* Remove scrollbar from chrome and other webkit browsers */

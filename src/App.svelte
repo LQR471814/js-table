@@ -16,8 +16,8 @@
 		for (let y = 0; y < rows; y++) {
 			const row = []
 			for (let x = 0; x < columns; x++) {
-				row.push(Math.round(Math.random() * 100).toString())
-				// row.push(y.toString())
+				// row.push(Math.round(Math.random() * 100).toString())
+				row.push(y.toString())
 			}
 			data.push(row)
 		}
@@ -34,6 +34,10 @@
 		dimensions={{
 			x: "50vw",
 			y: "50vh"
+		}}
+
+		styling={{
+			resize: 'both'
 		}}
 	/>
 </main>
