@@ -93,11 +93,49 @@
 
 	let scrollTotal = 0
 	let scrollPosition = 0
+	let prevScrollPosition = 0 //? To evaluate if the table should update or not
 
 	let appendRowBuffer = 0 //? This is in 'units'
 
 	const heldKeys = {
 		shift: false
+	}
+
+	const eventUpdateInterval: {
+		intervals: {
+			[key: string]: {
+				current: number,
+				update: number
+			}
+		},
+		update: (event: string) => boolean
+	} = {
+		intervals: { //? Only update every 3rd resize / scroll event
+			resize: {
+				current: 2,
+				update: 3
+			},
+			scroll: {
+				current: 2,
+				update: 3
+			}
+		},
+		update: (event: string) => {
+			const intervals = eventUpdateInterval.intervals //? This stores a reference
+
+			if (!Object.keys(intervals).includes(event)) {
+				throw new Error("Event does not exist on interval object")
+			}
+
+			intervals[event].current += 1
+
+			if (intervals[event].current >= intervals[event].update) {
+				intervals[event].current = 0
+				return true
+			}
+
+			return false
+		}
 	}
 
 	const displayRowsRange = {
@@ -278,6 +316,9 @@
 		updateAll()
 
 		const removeResizeListener = addResizeListener(container, () => {
+			if (!eventUpdateInterval.update('resize')) {
+				return
+			}
 			updateAll()
 		})
 
@@ -436,7 +477,7 @@
 		viewable={scrollbarView}
 		total={scrollTotal}
 		styling={renderedScrollbarStyling}
-		containerStyle='height: 99%'
+		containerStyle='height: 98%'
 
 		colorScheme={{
 			nubClicked: "#8E8E8E",
@@ -448,6 +489,10 @@
 		on:scroll={
 			(e) => { //? On Scrollbar Scroll
 				scrollPosition = scrollTotal * e.detail.position
+
+				if (!eventUpdateInterval.update('scroll')) {
+					return
+				}
 
 				const newStart = Math.round(scrollPosition / calculatedDimensions.rowHeight)
 
