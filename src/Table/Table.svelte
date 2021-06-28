@@ -95,7 +95,9 @@
 	let scrollPosition = 0
 	let appendRowBuffer = 0 //? This is in 'units'
 
-	const heldKeys = {
+	const heldKeys: {
+		[key: string]: boolean
+	} = {
 		shift: false
 	}
 
@@ -344,10 +346,15 @@
 				return
 			}
 
-			console.log('resize')
 			updateAll()
 			eventUpdateTracker.intervals['resize'].total = eventValue //? Update resize event total
 		})
+
+		const ongainfocus = () => {
+			for (const key of Object.keys(heldKeys)) {
+				heldKeys[key] = false
+			}
+		}
 
 		const onkeydown = (e: KeyboardEvent) => {
 			switch (e.key) {
@@ -365,15 +372,23 @@
 			}
 		}
 
-		const onresize = () => calculatedDimensions.update()
+		const onresize = () => updateAll()
 
+		window.addEventListener('focus', ongainfocus)
 		window.addEventListener('resize', onresize)
+
 		window.addEventListener('keydown', onkeydown)
 		window.addEventListener('keyup', onkeyup)
 
 		return () => {
 			backend.terminate()
+
+			window.removeEventListener('focus', ongainfocus)
 			window.removeEventListener('resize', onresize)
+
+			window.removeEventListener('keydown', onkeydown)
+			window.removeEventListener('keyup', onkeyup)
+
 			removeResizeListener()
 		}
 	})
@@ -521,8 +536,6 @@
 					return
 				}
 
-				console.log('scrolled')
-
 				const newStart = Math.round(scrollPosition / calculatedDimensions.rowHeight)
 
 				displayRowsRange.end = newStart + (displayRowsRange.end - displayRowsRange.start)
@@ -631,7 +644,5 @@
 
 		width: auto;
 		height: 12px;
-
-		margin-left: 12px;
 	}
 </style>

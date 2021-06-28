@@ -32,8 +32,8 @@
 		data={generateTableData(1000, 20)}
 
 		dimensions={{
-			x: "50vw",
-			y: "50vh"
+			x: "100vw",
+			y: "100vh"
 		}}
 
 		styling={{
