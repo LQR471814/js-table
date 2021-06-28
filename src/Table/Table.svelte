@@ -93,44 +93,60 @@
 
 	let scrollTotal = 0
 	let scrollPosition = 0
-	let prevScrollPosition = 0 //? To evaluate if the table should update or not
-
 	let appendRowBuffer = 0 //? This is in 'units'
 
 	const heldKeys = {
 		shift: false
 	}
 
-	const eventUpdateInterval: {
+	const eventUpdateTracker: {
 		intervals: {
 			[key: string]: {
-				current: number,
-				update: number
+				//? The previous event value
+				prev: number,
+
+				//? Accumulated change in event value
+				accumulated: number,
+
+				//? The percent delta threshold in which the event should update, a number from 0 - 1
+				delta: number,
+
+				//? The total amount that the tracker will use to calculate percentage delta against
+				//? (if total is undefined it will use the previous value)
+				total: number
 			}
 		},
-		update: (event: string) => boolean
+		update: (event: string, value: number) => boolean
 	} = {
-		intervals: { //? Only update every 3rd resize / scroll event
+		intervals: { //? Only update when accumulated delta passes a certain percentage
 			resize: {
-				current: 2,
-				update: 3
+				prev: 0,
+				accumulated: 0,
+				delta: 0.1,
+				total: 0
 			},
 			scroll: {
-				current: 2,
-				update: 3
+				prev: 0,
+				accumulated: 0,
+				delta: 0.02,
+				total: 0
 			}
 		},
-		update: (event: string) => {
-			const intervals = eventUpdateInterval.intervals //? This stores a reference
+		update: (event: string, value: number) => {
+			const intervals = eventUpdateTracker.intervals //? This stores a reference
 
 			if (!Object.keys(intervals).includes(event)) {
 				throw new Error("Event does not exist on interval object")
 			}
 
-			intervals[event].current += 1
+			const realDelta = Math.abs(intervals[event].prev - value)
+			intervals[event].accumulated += realDelta
 
-			if (intervals[event].current >= intervals[event].update) {
-				intervals[event].current = 0
+			const delta = Math.abs(intervals[event].accumulated / intervals[event].total)
+			intervals[event].prev = value
+
+			if (delta > intervals[event].delta) {
+				intervals[event].accumulated = 0
 				return true
 			}
 
@@ -315,11 +331,22 @@
 
 		updateAll()
 
+		const containerBox = container.getBoundingClientRect()
+
+		eventUpdateTracker.intervals['scroll'].total = scrollTotal
+		eventUpdateTracker.intervals['resize'].total = containerBox.height * containerBox.width
+
 		const removeResizeListener = addResizeListener(container, () => {
-			if (!eventUpdateInterval.update('resize')) {
+			const containerBox = container.getBoundingClientRect()
+			const eventValue = containerBox.width * containerBox.height
+
+			if (!eventUpdateTracker.update('resize', eventValue)) {
 				return
 			}
+
+			console.log('resize')
 			updateAll()
+			eventUpdateTracker.intervals['resize'].total = eventValue //? Update resize event total
 		})
 
 		const onkeydown = (e: KeyboardEvent) => {
@@ -477,7 +504,7 @@
 		viewable={scrollbarView}
 		total={scrollTotal}
 		styling={renderedScrollbarStyling}
-		containerStyle='height: 98%'
+		containerStyle='height: 97%'
 
 		colorScheme={{
 			nubClicked: "#8E8E8E",
@@ -490,9 +517,11 @@
 			(e) => { //? On Scrollbar Scroll
 				scrollPosition = scrollTotal * e.detail.position
 
-				if (!eventUpdateInterval.update('scroll')) {
+				if (!eventUpdateTracker.update('scroll', scrollPosition)) {
 					return
 				}
+
+				console.log('scrolled')
 
 				const newStart = Math.round(scrollPosition / calculatedDimensions.rowHeight)
 
